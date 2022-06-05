@@ -64,9 +64,9 @@
      "The unmodified Linux kernel, including nonfree blobs, for running Guix
 System on hardware which requires nonfree software to function.")))
 
-(define-public linux-5.17
-  (corrupt-linux linux-libre-5.17 "5.17.11"
-                 "0c8vz02lbfm0zkgsr1gvdp8bzxz255dk863pnakw6d77z9bfc22p"))
+(define-public linux-5.18
+  (corrupt-linux linux-libre-5.18 "5.18.1"
+                 "08kxypqxqi6kiz8d5ksjbvx71q9qkp1ab93l2xx6l630qqk43lc3"))
 
 (define-public linux-5.15
   (corrupt-linux linux-libre-5.15 "5.15.43"
@@ -92,12 +92,12 @@ System on hardware which requires nonfree software to function.")))
   (corrupt-linux linux-libre-4.9 "4.9.282"
                  "059fin4si93ya13xy831w84q496ksxidpd3kyw38918sfy4p6wk7"))
 
-(define-public linux linux-5.17)
+(define-public linux linux-5.18)
 ;; linux-lts points to the *newest* released long-term support version.
 (define-public linux-lts linux-5.15)
 
-(define-public linux-arm64-generic-5.17
-  (corrupt-linux linux-libre-arm64-generic "5.17.1"
+(define-public linux-arm64-generic-5.18
+  (corrupt-linux linux-libre-arm64-generic "5.18.1"
                  "092cx18va108lb27kxx2b00ma3l9g22nmkk81034apx26bacbmbw"
 		 #:name "linux-arm64-generic"))
 
@@ -106,7 +106,7 @@ System on hardware which requires nonfree software to function.")))
                  "0ckiz985x88x68psg6wazyk7zpv34k8rbzpzyzj0gaph13za4ki5"
 		 #:name "linux-arm64-generic"))
 
-(define-public linux-arm64-generic linux-arm64-generic-5.17)
+(define-public linux-arm64-generic linux-arm64-generic-5.18)
 
 (define-public linux-arm64-generic-lts linux-arm64-generic-5.15)
 
@@ -838,7 +838,7 @@ documented in the respective processor revision guides.")
 (define-public sof-firmware
   (package
     (name "sof-firmware")
-    (version "1.7")
+    (version "2.1.1")
     (source
      (origin
        (method git-fetch)
@@ -847,12 +847,12 @@ documented in the respective processor revision guides.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1fb4rxgg3haxqg2gcm89g7af6v0a0h83c1ar2fyfa8h8pcf7hik7"))))
+        (base32 "0j6d77wk2vl1rcwl8y2ir52g0ss9vb8hllhq0jmkycanh9y1irpw"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
-       (list (list (string-append "sof-v" ,version) "lib/firmware/intel/sof")
-             (list (string-append "sof-tplg-v" ,version) "lib/firmware/intel/sof-tplg"))))
+       (list (list (string-append "v" ,(version-major+minor version) ".x/sof-v" ,version) "lib/firmware/intel/sof")
+             (list (string-append "v" ,(version-major+minor version) ".x/sof-tplg-v" ,version) "lib/firmware/intel/sof-tplg"))))
     (home-page "https://www.sofproject.org")
     (synopsis "Sound Open Firmware")
     (description "This package contains Linux firmwares and topology files for
