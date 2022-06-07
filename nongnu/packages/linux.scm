@@ -65,8 +65,8 @@
 System on hardware which requires nonfree software to function.")))
 
 (define-public linux-5.18
-  (corrupt-linux linux-libre-5.18 "5.18.1"
-                 "08kxypqxqi6kiz8d5ksjbvx71q9qkp1ab93l2xx6l630qqk43lc3"))
+  (corrupt-linux linux-libre-5.18 "5.18.2"
+                 "18jrjs246y0ngfajv9plz67zx1f3ms53177xwpkh6sj1lpgz57zg"))
 
 (define-public linux-5.15
   (corrupt-linux linux-libre-5.15 "5.15.43"
@@ -860,3 +860,4 @@ audio DSPs that can be found on the Intel Skylake architecture.  Those
 firmware can be built for source but need to be signed by Intel in order to be
 loaded by Linux.")
     (license bsd-3)))
+
