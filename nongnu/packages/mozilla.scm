@@ -98,7 +98,7 @@
        (uri (string-append "https://archive.mozilla.org/pub/firefox/releases/"
                            version "/source/firefox-" version ".source.tar.xz"))
        (sha256
-        (base32 "05w499jjsi8n04zwwr5vskriddafd6dghyhlizykhsag41hrh461"))))
+        (base32 "15b0p2zwpln46x2ya27mv6izpw8w6yl660k46z4cpfsqgm8mpasm"))))
     (build-system gnu-build-system)
     (arguments
      (list
