@@ -190,7 +190,7 @@ advanced 3D.")))
 (define-public raspberrypi-firmware
 (package
   (name "raspberrypi-firmware")
-  (version "1.20220120")
+  (version "1.20220331")
   (source (origin
             (method git-fetch)
             (uri (git-reference
@@ -210,7 +210,7 @@ advanced 3D.")))
             (file-name (git-file-name name version))
             (sha256
              (base32
-              "0s75fw4n83bkh78xh5rdgpiyp1bkvv1v18pawl4cs9v4gjkn6pi2"))))
+              "1hd1vkghkgdlmw04fap28f68nsf7d7i8dq6h9r4xa0h9y4f6j6ag"))))
     (arguments
      '(#:install-plan
        '(("boot/" "."))))
@@ -705,9 +705,7 @@ releases.")
          "1b1qjwxjk4y91l3iz157kms8601n0mmiik32cs6w9b1q4sl4pxx9"))))
     (build-system trivial-build-system)
     (arguments
-     `(#:modules ((guix build utils)
-                  (ice-9 rdelim)
-                  (ice-9 regex))
+     `(#:modules ((guix build utils))
        #:builder
        (begin
          (use-modules (guix build utils)
