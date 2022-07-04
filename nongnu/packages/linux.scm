@@ -835,7 +835,7 @@ documented in the respective processor revision guides.")
 (define-public sof-firmware
   (package
     (name "sof-firmware")
-    (version "2.1.1")
+    (version "2.2")
     (source
      (origin
        (method git-fetch)
@@ -844,7 +844,8 @@ documented in the respective processor revision guides.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0j6d77wk2vl1rcwl8y2ir52g0ss9vb8hllhq0jmkycanh9y1irpw"))))
+        (base32
+                "12h5j86x9hxr9kxc8zxa9gfdfbdmmic8dxn1zkrln9wp6d6cc27y"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
@@ -858,3 +859,4 @@ firmware can be built for source but need to be signed by Intel in order to be
 loaded by Linux.")
     (license bsd-3)))
 
+sof-firmware
