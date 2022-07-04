@@ -112,7 +112,7 @@ System on hardware which requires nonfree software to function.")))
 (define-public linux-firmware
   (package
     (name "linux-firmware")
-    (version "20220509")
+    (version "20220610")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://git.kernel.org/pub/scm/linux/kernel"
@@ -120,7 +120,7 @@ System on hardware which requires nonfree software to function.")))
                                   "linux-firmware-" version ".tar.gz"))
               (sha256
                (base32
-                "09461dcfxvzzsl768myywb64jivnxyx3m4apbygq4501l8h8ybig"))))
+                "1nra8ndj3xhzvfckn6a3ghxw70zd2k19j9x5dj7fxpq2maw5xfq9"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f
@@ -845,7 +845,7 @@ documented in the respective processor revision guides.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-                "12h5j86x9hxr9kxc8zxa9gfdfbdmmic8dxn1zkrln9wp6d6cc27y"))))
+         "12h5j86x9hxr9kxc8zxa9gfdfbdmmic8dxn1zkrln9wp6d6cc27y"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
@@ -859,4 +859,3 @@ firmware can be built for source but need to be signed by Intel in order to be
 loaded by Linux.")
     (license bsd-3)))
 
-sof-firmware
