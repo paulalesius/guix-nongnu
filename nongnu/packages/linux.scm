@@ -65,32 +65,32 @@
 System on hardware which requires nonfree software to function.")))
 
 (define-public linux-5.18
-  (corrupt-linux linux-libre-5.18 "5.18.15"
-                 "0g5yvhq7rmkzvfl4w50l7bg56a20insvg4s4nvgnk2iqvkmlz039"))
+  (corrupt-linux linux-libre-5.18 "5.18.16"
+                 "1khi1npn8d8jimwdy8bf3r7l780mxdmvk5azdv419pk33qjqdxgi"))
 
 (define-public linux-5.15
-  (corrupt-linux linux-libre-5.15 "5.15.57"
-                 "1zgh43pgn8fsyxzksfw6llxqw6fc8qassfn9a18k2xn83xd0kqv2"))
+  (corrupt-linux linux-libre-5.15 "5.15.59"
+                 "1jxw6fnc7yaw7r6193wy6l8wdlpy3frw48drnc3dnh3k0m1cdpg6"))
 
 (define-public linux-5.10
-  (corrupt-linux linux-libre-5.10 "5.10.133"
-                 "03i84g3pfh24f10zsdyyqyv9fhy01ah9lk02y48hqwnabdylqp1v"))
+  (corrupt-linux linux-libre-5.10 "5.10.135"
+                 "0i1kahv739qpyyml7d7sx306nv7gp55i5d97vlb0fryfx4dsd6g4"))
 
 (define-public linux-5.4
-  (corrupt-linux linux-libre-5.4 "5.4.145"
-                 "1yb8vk5sbnyswylkpqw5i4n9cmnmlrfmbrnmy3nif579q8p7ixsw"))
+  (corrupt-linux linux-libre-5.4 "5.4.209"
+                 "1kdnz99k7zspzaxqaxahbf6hncigy4cvjlb79jsy7a95qxxr31qf"))
 
 (define-public linux-4.19
-  (corrupt-linux linux-libre-4.19 "4.19.206"
-                 "1h44lvzxd0cngj71bk8qba9dz7jlqj68ir6xjwfafglb81ppgsxp"))
+  (corrupt-linux linux-libre-4.19 "4.19.254"
+                 "1rd40wmdaymbly2zvf60mjqsflkd4n1y232qz0ixn1rfl28yz62i"))
 
 (define-public linux-4.14
-  (corrupt-linux linux-libre-4.14 "4.14.246"
-                 "0fpgig84shpas1jc0h4s3aw9brkcq1as84gjbk4bfhc48bpi4mlw"))
+  (corrupt-linux linux-libre-4.14 "4.14.290"
+                 "0zyxb99a7fa2l85vnzmvg2nry99clj20d4j38piqm921iqxak2j4"))
 
 (define-public linux-4.9
-  (corrupt-linux linux-libre-4.9 "4.9.282"
-                 "059fin4si93ya13xy831w84q496ksxidpd3kyw38918sfy4p6wk7"))
+  (corrupt-linux linux-libre-4.9 "4.9.325"
+                 "04msx0x0d8v93zjr3jj0qqkgg7m4hb7rj6hk5vzrzasmgbjmb3dl"))
 
 (define-public linux linux-5.18)
 ;; linux-lts points to the *newest* released long-term support version.
