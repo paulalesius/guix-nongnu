@@ -113,7 +113,8 @@
   (rust-bootstrapped-package
    rust-firefox-1.58 "1.59.0" "1yc5bwcbmbwyvpfq7zvra78l0r8y3lbv60kbr62fzz2vx2pfxj57"))
 
-(define-public rust-firefox rust-firefox-1.59)
+(define-public rust-firefox rust)
+  ;;rust-firefox-1.59)
 
 ;; rust-cbindgen-0.23/0.24 dependencies
 (define-public rust-unicode-ident-1
@@ -980,3 +981,4 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
                          out "/share/applications/firefox.desktop")
              ((firefox) out))
            #t))))))
+
