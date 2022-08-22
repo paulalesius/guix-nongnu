@@ -4,6 +4,9 @@
 ;;; Copyright © 2019 Timotej Lazar <timotej.lazar@araneo.si>
 ;;; Copyright © 2020, 2021 James Smith <jsubuntuxp@disroot.org>
 ;;; Copyright © 2020, 2021, 2022 Jonathan Brielmaier <jonathan.brielmaier@web.de>
+;;; Copyright © 2020 Michael Rohleder <mike@rohleder.de>
+;;; Copyright © 2020, 2021 Tobias Geerinckx-Rice <me@tobias.gr>
+;;; Copyright © 2020, 2021, 2022 Zhu Zihao <all_but_last@163.com>
 ;;; Copyright © 2021 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2021 Brice Waegeneire <brice@waegenei.re>
 ;;; Copyright © 2021 Risto Stevcev <me@risto.codes>
@@ -12,6 +15,7 @@
 ;;; Copyright © 2022 John Kehayias <john.kehayias@protonmail.com>
 ;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2022 Remco van 't Veer <remco@remworks.net>
+
 ;;;
 ;;; This program is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -35,6 +39,7 @@
   #:use-module (guix packages)
   #:use-module (guix utils)
   #:use-module (guix download)
+  #:use-module (guix gexp)
   #:use-module (guix git-download)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
@@ -69,24 +74,24 @@ System on hardware which requires nonfree software to function.")))
                  "0gg63y078k886clgfq4k5n7nh2r0359ksvf8wd06rv01alghmr28"))
 
 (define-public linux-5.18
-  (corrupt-linux linux-libre-5.18 "5.18.16"
-                 "1khi1npn8d8jimwdy8bf3r7l780mxdmvk5azdv419pk33qjqdxgi"))
+  (corrupt-linux linux-libre-5.18 "5.18.18"
+                 "0as0cslwz6zdiwd5wzcjggw3qpa9hzvfmxlhy72jdhn5vk47dhy1"))
 
 (define-public linux-5.15
-  (corrupt-linux linux-libre-5.15 "5.15.59"
-                 "1jxw6fnc7yaw7r6193wy6l8wdlpy3frw48drnc3dnh3k0m1cdpg6"))
+  (corrupt-linux linux-libre-5.15 "5.15.61"
+                 "0hpx0ziz162lc41jwi2ybj3qgidinjcsp71lchvmp6h0vyiddj9v"))
 
 (define-public linux-5.10
-  (corrupt-linux linux-libre-5.10 "5.10.135"
-                 "0i1kahv739qpyyml7d7sx306nv7gp55i5d97vlb0fryfx4dsd6g4"))
+  (corrupt-linux linux-libre-5.10 "5.10.136"
+                 "0naiwihlj6aswnqwdz3xzmga98xpj5lf2iy9vxqzdng7b46rs28w"))
 
 (define-public linux-5.4
-  (corrupt-linux linux-libre-5.4 "5.4.209"
-                 "1kdnz99k7zspzaxqaxahbf6hncigy4cvjlb79jsy7a95qxxr31qf"))
+  (corrupt-linux linux-libre-5.4 "5.4.210"
+                 "13l8zh5balciqhi4k4328sznza30v8g871wxcqqka61cij3rc0wl"))
 
 (define-public linux-4.19
-  (corrupt-linux linux-libre-4.19 "4.19.254"
-                 "1rd40wmdaymbly2zvf60mjqsflkd4n1y232qz0ixn1rfl28yz62i"))
+  (corrupt-linux linux-libre-4.19 "4.19.255"
+                 "0hwa3g09cmllc2z01s2jqbczpznzdp3ldngx18k5c2ac7w394fbp"))
 
 (define-public linux-4.14
   (corrupt-linux linux-libre-4.14 "4.14.290"
@@ -101,13 +106,13 @@ System on hardware which requires nonfree software to function.")))
 (define-public linux-lts linux-5.15)
 
 (define-public linux-arm64-generic-5.18
-  (corrupt-linux linux-libre-arm64-generic "5.18.16"
-                 "1khi1npn8d8jimwdy8bf3r7l780mxdmvk5azdv419pk33qjqdxgi"
+  (corrupt-linux linux-libre-arm64-generic "5.18.18"
+                 "0as0cslwz6zdiwd5wzcjggw3qpa9hzvfmxlhy72jdhn5vk47dhy1"
 		 #:name "linux-arm64-generic"))
 
 (define-public linux-arm64-generic-5.15
-  (corrupt-linux linux-libre-arm64-generic "5.15.59"
-                 "1jxw6fnc7yaw7r6193wy6l8wdlpy3frw48drnc3dnh3k0m1cdpg6"
+  (corrupt-linux linux-libre-arm64-generic "5.15.61"
+                 "0hpx0ziz162lc41jwi2ybj3qgidinjcsp71lchvmp6h0vyiddj9v"
 		 #:name "linux-arm64-generic"))
 
 (define-public linux-arm64-generic linux-arm64-generic-5.18)
@@ -864,3 +869,43 @@ firmware can be built from source but need to be signed by Intel in order to be
 loaded by Linux.")
     (license bsd-3)))
 
+(define-public rtl8821ce-linux-module
+  (let ((commit "be733dc86781c68571650b395dd0fa6b53c0a039")
+        (revision "6"))
+    (package
+      (name "rtl8821ce-linux-module")
+      (version (git-version "0.0.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/tomaspinho/rtl8821ce")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32
+           "00sd7s0582b9jcpfgy0fw6418dwg700mfyizkfr22jf2x140iy70"))))
+      (build-system linux-module-build-system)
+      (arguments
+       (list #:make-flags
+             #~(list (string-append "CC=" #$(cc-for-target))
+                     (string-append "KSRC="
+                                    (assoc-ref %build-inputs
+                                               "linux-module-builder")
+                                    "/lib/modules/build"))
+             #:phases
+             #~(modify-phases %standard-phases
+                 (replace 'build
+                   (lambda* (#:key (make-flags '()) (parallel-build? #t)
+                                   #:allow-other-keys)
+                     (apply invoke "make"
+                            `(,@(if parallel-build?
+                                    `("-j" ,(number->string (parallel-job-count)))
+                                    '())
+                              ,@make-flags)))))
+             #:tests? #f))                  ; no test suite
+      (home-page "https://github.com/tomaspinho/rtl8821ce")
+      (synopsis "Linux driver for Realtek RTL8821CE wireless network adapters")
+      (description "This is Realtek's RTL8821CE Linux driver for wireless
+network adapters.")
+      (license gpl2))))
