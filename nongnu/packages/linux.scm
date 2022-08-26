@@ -845,7 +845,7 @@ documented in the respective processor revision guides.")
 (define-public sof-firmware
   (package
     (name "sof-firmware")
-    (version "2.2")
+    (version "2.2.1")
     (source
      (origin
        (method git-fetch)
@@ -855,7 +855,7 @@ documented in the respective processor revision guides.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "12h5j86x9hxr9kxc8zxa9gfdfbdmmic8dxn1zkrln9wp6d6cc27y"))))
+         "096rrjaq6lcjh5y8pv1x6h7icx6y4pdkr055660048fg8z955vwa"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
