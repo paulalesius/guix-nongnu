@@ -859,8 +859,8 @@ documented in the respective processor revision guides.")
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
-       (list (list (string-append "v" ,(version-major+minor version) ".x/sof-v" ,version) "lib/firmware/intel/sof")
-             (list (string-append "v" ,(version-major+minor version) ".x/sof-tplg-v" ,version) "lib/firmware/intel/sof-tplg"))))
+       (list (list (string-append "v" ,(version-major+minor version) ".x/sof-v" ,(version-major+minor version)) "lib/firmware/intel/sof")
+             (list (string-append "v" ,(version-major+minor version) ".x/sof-tplg-v" ,(version-major+minor version)) "lib/firmware/intel/sof-tplg"))))
     (home-page "https://www.sofproject.org")
     (synopsis "Sound Open Firmware")
     (description "This package contains Linux firmwares and topology files for
