@@ -989,4 +989,3 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
                          out "/share/applications/firefox.desktop")
              ((firefox) out))
            #t))))))
-
