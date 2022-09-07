@@ -70,59 +70,55 @@
 System on hardware which requires nonfree software to function.")))
 
 (define-public linux-5.19
-  (corrupt-linux linux-libre-5.19 "5.19.4"
-                 "11xzz5glbc7p3j9mhv6dvi9iv345ykpyihm8mby8vyas12bln8d9"))
-
-(define-public linux-5.18
-  (corrupt-linux linux-libre-5.18 "5.18.18"
-                 "0as0cslwz6zdiwd5wzcjggw3qpa9hzvfmxlhy72jdhn5vk47dhy1"))
+  (corrupt-linux linux-libre-5.19 "5.19.5"
+                 "1g9p4m9w9y0y1gk6vzqvsxzwqspbm10mmhd8n1mhal1yz721qgwc"))
 
 (define-public linux-5.15
-  (corrupt-linux linux-libre-5.15 "5.15.61"
-                 "0hpx0ziz162lc41jwi2ybj3qgidinjcsp71lchvmp6h0vyiddj9v"))
+  (corrupt-linux linux-libre-5.15 "5.15.63"
+                 "0hbkxgadz0vcslni4r46yc202wcnxblcfvkcph1017b2b8gcvlvd"))
 
 (define-public linux-5.10
-  (corrupt-linux linux-libre-5.10 "5.10.136"
-                 "0naiwihlj6aswnqwdz3xzmga98xpj5lf2iy9vxqzdng7b46rs28w"))
+  (corrupt-linux linux-libre-5.10 "5.10.138"
+                 "1a2vmcqzi71w88j79lxsrgyycq1l1gxp0cvh5ya4afhfisxh7819"))
 
 (define-public linux-5.4
-  (corrupt-linux linux-libre-5.4 "5.4.210"
-                 "13l8zh5balciqhi4k4328sznza30v8g871wxcqqka61cij3rc0wl"))
+  (corrupt-linux linux-libre-5.4 "5.4.211"
+                 "1v1dgsk66fi6x6v9k6hg9ik3f3b3pv7a3gk8mybmgm9cnx0k5d5z"))
 
 (define-public linux-4.19
-  (corrupt-linux linux-libre-4.19 "4.19.255"
-                 "0hwa3g09cmllc2z01s2jqbczpznzdp3ldngx18k5c2ac7w394fbp"))
+  (corrupt-linux linux-libre-4.19 "4.19.256"
+                 "0jgm7ydha9achbcq3a6q85wq1nz4qg7phx122jzk0mqb1339bpk7"))
 
 (define-public linux-4.14
-  (corrupt-linux linux-libre-4.14 "4.14.290"
-                 "0zyxb99a7fa2l85vnzmvg2nry99clj20d4j38piqm921iqxak2j4"))
+  (corrupt-linux linux-libre-4.14 "4.14.291"
+                 "15h76l81zn733g8dc6gsymf52nz325plhminv3m4x3klwhav34zc"))
 
 (define-public linux-4.9
-  (corrupt-linux linux-libre-4.9 "4.9.325"
-                 "04msx0x0d8v93zjr3jj0qqkgg7m4hb7rj6hk5vzrzasmgbjmb3dl"))
+  (corrupt-linux linux-libre-4.9 "4.9.326"
+                 "0yw83a8nk5abjsvqrz8m2sj699c228j2f2wr5q8m95vgqzfw5wrb"))
 
 (define-public linux linux-5.19)
 ;; linux-lts points to the *newest* released long-term support version.
 (define-public linux-lts linux-5.15)
 
-(define-public linux-arm64-generic-5.18
-  (corrupt-linux linux-libre-arm64-generic "5.18.18"
-                 "0as0cslwz6zdiwd5wzcjggw3qpa9hzvfmxlhy72jdhn5vk47dhy1"
+(define-public linux-arm64-generic-5.19
+  (corrupt-linux linux-libre-arm64-generic "5.19.5"
+                 "1g9p4m9w9y0y1gk6vzqvsxzwqspbm10mmhd8n1mhal1yz721qgwc"
 		 #:name "linux-arm64-generic"))
 
 (define-public linux-arm64-generic-5.15
-  (corrupt-linux linux-libre-arm64-generic "5.15.61"
-                 "0hpx0ziz162lc41jwi2ybj3qgidinjcsp71lchvmp6h0vyiddj9v"
+  (corrupt-linux linux-libre-arm64-generic "5.15.63"
+                 "0hbkxgadz0vcslni4r46yc202wcnxblcfvkcph1017b2b8gcvlvd"
 		 #:name "linux-arm64-generic"))
 
-(define-public linux-arm64-generic linux-arm64-generic-5.18)
+(define-public linux-arm64-generic linux-arm64-generic-5.19)
 
 (define-public linux-arm64-generic-lts linux-arm64-generic-5.15)
 
 (define-public linux-firmware
   (package
     (name "linux-firmware")
-    (version "20220815")
+    (version "20220509")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://git.kernel.org/pub/scm/linux/kernel"
@@ -130,7 +126,7 @@ System on hardware which requires nonfree software to function.")))
                                   "linux-firmware-" version ".tar.gz"))
               (sha256
                (base32
-                "0arx4ccy84k1vi14qmkq8yqjdsrqlnqz7lzhf3qfa8sxch1321av"))))
+                "09461dcfxvzzsl768myywb64jivnxyx3m4apbygq4501l8h8ybig"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f
@@ -845,7 +841,7 @@ documented in the respective processor revision guides.")
 (define-public sof-firmware
   (package
     (name "sof-firmware")
-    (version "2.2.1")
+    (version "1.7")
     (source
      (origin
        (method git-fetch)
@@ -854,13 +850,12 @@ documented in the respective processor revision guides.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32
-         "096rrjaq6lcjh5y8pv1x6h7icx6y4pdkr055660048fg8z955vwa"))))
+        (base32 "1fb4rxgg3haxqg2gcm89g7af6v0a0h83c1ar2fyfa8h8pcf7hik7"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
-       (list (list (string-append "v" ,(version-major+minor version) ".x/sof-v" ,(version-major+minor version)) "lib/firmware/intel/sof")
-             (list (string-append "v" ,(version-major+minor version) ".x/sof-tplg-v" ,(version-major+minor version)) "lib/firmware/intel/sof-tplg"))))
+       (list (list (string-append "sof-v" ,version) "lib/firmware/intel/sof")
+             (list (string-append "sof-tplg-v" ,version) "lib/firmware/intel/sof-tplg"))))
     (home-page "https://www.sofproject.org")
     (synopsis "Sound Open Firmware")
     (description "This package contains Linux firmwares and topology files for

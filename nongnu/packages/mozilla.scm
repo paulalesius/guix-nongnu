@@ -113,8 +113,7 @@
   (rust-bootstrapped-package
    rust-firefox-1.58 "1.59.0" "1yc5bwcbmbwyvpfq7zvra78l0r8y3lbv60kbr62fzz2vx2pfxj57"))
 
-(define-public rust-firefox rust)
-  ;;rust-firefox-1.59)
+(define-public rust-firefox rust-firefox-1.59)
 
 ;; rust-cbindgen-0.23/0.24 dependencies
 (define-public rust-unicode-ident-1
@@ -514,12 +513,7 @@ according to Unicode Standard Annex #31")
                        ("rust-syn" ,rust-syn-1.0.99)
                        ("rust-tempfile" ,rust-tempfile-3)
                        ("rust-toml" ,rust-toml-0.5))
-       #:cargo-development-inputs (("rust-serial-test" ,rust-serial-test-0.5))
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'build 'fix-cargo-toml
-           (lambda _
-             (delete-file "Cargo.toml.orig"))))))))
+       #:cargo-development-inputs (("rust-serial-test" ,rust-serial-test-0.5))))))
 
 ;; Bug with firefox build (v101-102) with cbindgen-0.24, see
 ;; https://bugzilla.mozilla.org/show_bug.cgi?id=1773259#c5 for possible patch
@@ -937,8 +931,7 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
        (uri (string-append "https://archive.mozilla.org/pub/firefox/releases/"
                            version "/source/firefox-" version ".source.tar.xz"))
        (sha256
-        (base32
-         "1klqvjf9gn9xmlkqbylw3as4lakrww89zax3fad0y9n63mjlla8s"))))
+        (base32 "1klqvjf9gn9xmlkqbylw3as4lakrww89zax3fad0y9n63mjlla8s"))))
     (arguments
      (substitute-keyword-arguments (package-arguments firefox-esr)
        ((#:phases phases)
