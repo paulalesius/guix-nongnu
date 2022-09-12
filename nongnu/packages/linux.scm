@@ -70,45 +70,45 @@
 System on hardware which requires nonfree software to function.")))
 
 (define-public linux-5.19
-  (corrupt-linux linux-libre-5.19 "5.19.5"
-                 "1g9p4m9w9y0y1gk6vzqvsxzwqspbm10mmhd8n1mhal1yz721qgwc"))
+  (corrupt-linux linux-libre-5.19 "5.19.8"
+                 "1kl7fifsa6vsm34xg3kd2svhx18n771hfj67nhwnlalmb9whhqv1"))
 
 (define-public linux-5.15
-  (corrupt-linux linux-libre-5.15 "5.15.63"
-                 "0hbkxgadz0vcslni4r46yc202wcnxblcfvkcph1017b2b8gcvlvd"))
+  (corrupt-linux linux-libre-5.15 "5.15.67"
+                 "0h7r2k59jsw8ykb2p7nxrpazbwx1n5p3nmfbbj1lhib91fldjiys"))
 
 (define-public linux-5.10
-  (corrupt-linux linux-libre-5.10 "5.10.138"
-                 "1a2vmcqzi71w88j79lxsrgyycq1l1gxp0cvh5ya4afhfisxh7819"))
+  (corrupt-linux linux-libre-5.10 "5.10.142"
+                 "0s52vfvw5pgnq7gq9n66ib05ryhkxwv765f16862l5gykbdynirz"))
 
 (define-public linux-5.4
-  (corrupt-linux linux-libre-5.4 "5.4.211"
-                 "1v1dgsk66fi6x6v9k6hg9ik3f3b3pv7a3gk8mybmgm9cnx0k5d5z"))
+  (corrupt-linux linux-libre-5.4 "5.4.212"
+                 "1hngr4hsrcd6hmlyvc3msy5racniav2jagp5abmp7xsxv0yjxiq9"))
 
 (define-public linux-4.19
-  (corrupt-linux linux-libre-4.19 "4.19.256"
-                 "0jgm7ydha9achbcq3a6q85wq1nz4qg7phx122jzk0mqb1339bpk7"))
+  (corrupt-linux linux-libre-4.19 "4.19.257"
+                 "0izaldl2l2zsshkd07qsnr9x6ikipmj5jp7lxr8dyz7kf2m17pga"))
 
 (define-public linux-4.14
-  (corrupt-linux linux-libre-4.14 "4.14.291"
-                 "15h76l81zn733g8dc6gsymf52nz325plhminv3m4x3klwhav34zc"))
+  (corrupt-linux linux-libre-4.14 "4.14.292"
+                 "0zc97qy62dhc5xkjnvsfn4lpl4dgrj23hlxvxcr4cr8sj0hxzx3h"))
 
 (define-public linux-4.9
-  (corrupt-linux linux-libre-4.9 "4.9.326"
-                 "0yw83a8nk5abjsvqrz8m2sj699c228j2f2wr5q8m95vgqzfw5wrb"))
+  (corrupt-linux linux-libre-4.9 "4.9.327"
+                 "1lh63viynf9f7vl0a52mnal8jack9lbqfsfammwkxi3kafpw30r2"))
 
 (define-public linux linux-5.19)
 ;; linux-lts points to the *newest* released long-term support version.
 (define-public linux-lts linux-5.15)
 
 (define-public linux-arm64-generic-5.19
-  (corrupt-linux linux-libre-arm64-generic "5.19.5"
-                 "1g9p4m9w9y0y1gk6vzqvsxzwqspbm10mmhd8n1mhal1yz721qgwc"
+  (corrupt-linux linux-libre-arm64-generic "5.19.8"
+                 "1kl7fifsa6vsm34xg3kd2svhx18n771hfj67nhwnlalmb9whhqv1"
 		 #:name "linux-arm64-generic"))
 
 (define-public linux-arm64-generic-5.15
-  (corrupt-linux linux-libre-arm64-generic "5.15.63"
-                 "0hbkxgadz0vcslni4r46yc202wcnxblcfvkcph1017b2b8gcvlvd"
+  (corrupt-linux linux-libre-arm64-generic "5.15.67"
+                 "0h7r2k59jsw8ykb2p7nxrpazbwx1n5p3nmfbbj1lhib91fldjiys"
 		 #:name "linux-arm64-generic"))
 
 (define-public linux-arm64-generic linux-arm64-generic-5.19)
@@ -865,8 +865,8 @@ loaded by Linux.")
     (license bsd-3)))
 
 (define-public rtl8821ce-linux-module
-  (let ((commit "be733dc86781c68571650b395dd0fa6b53c0a039")
-        (revision "6"))
+  (let ((commit "812fb928f05980d13a3c58a62c8762d3aa21c033")
+        (revision "7"))
     (package
       (name "rtl8821ce-linux-module")
       (version (git-version "0.0.0" revision commit))
@@ -879,7 +879,7 @@ loaded by Linux.")
          (file-name (git-file-name name version))
          (sha256
           (base32
-           "00sd7s0582b9jcpfgy0fw6418dwg700mfyizkfr22jf2x140iy70"))))
+           "1wa5rdz730w8xpzahcqylinwkp0ljyywgmvny66ab0wb4zf8cb6j"))))
       (build-system linux-module-build-system)
       (arguments
        (list #:make-flags
