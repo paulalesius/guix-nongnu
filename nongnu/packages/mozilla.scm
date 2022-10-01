@@ -83,7 +83,8 @@
   #:use-module (gnu packages video)
   #:use-module (nongnu packages wasm)
   #:use-module (gnu packages xdisorg)
-  #:use-module (gnu packages xorg))
+  #:use-module (gnu packages xorg)
+  #:use-module (unnsvc packages rust))
 
 ;; Copied from guix/gnu/packages/rust.scm
 (define* (rust-uri version #:key (dist "static"))
@@ -708,8 +709,10 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
                 (setenv "MOZ_BUILD_DATE" #$%firefox-build-id)))))))
     (native-inputs
      (modify-inputs (package-native-inputs firefox-esr)
-       (replace "rust" rust-firefox)
-       (replace "rust:cargo" `(,rust-firefox "cargo"))
+       ;;(replace "rust" rust-firefox)
+       ;;(replace "rust:cargo" `(,rust-firefox "cargo"))
+       (replace "rust" rust-1.64)
+       (replace "rust:cargo" `(,rust-1.64 "cargo"))
        (replace "node" node-lts)
        (replace "rust-cbindgen" rust-cbindgen-0.24)))
     (description
@@ -751,3 +754,4 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
                          out "/share/applications/firefox.desktop")
              ((firefox) out))
            #t))))))
+
