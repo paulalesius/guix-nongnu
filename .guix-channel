@@ -3,4 +3,14 @@
 (channel
  (version 0)
  (news-file "news.txt")
- (url "https://gitlab.com/nonguix/nonguix")) ; the primary URL
+ (url "https://gitlab.com/nonguix/nonguix")
+ (dependencies
+ (channel
+    (name rust)
+    (url "https://github.com/paulalesius/guix-rust")
+    (branch "main")
+    (introduction
+     (channel-introduction
+      (version 0)
+      (commit "1fc51a49b05763f9097ed3a8c77ef4156d89e843")
+      (signer "BBB0 2DDF 2CEA F6A8 0D1D  E643 A2A0 6DF2 A33A 54FA")))))) ; the primary URL
