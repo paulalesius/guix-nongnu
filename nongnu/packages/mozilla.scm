@@ -692,14 +692,14 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
   (package
     (inherit firefox-esr)
     (name "firefox")
-    (version "105.0")
+    (version "105.0.1")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://archive.mozilla.org/pub/firefox/releases/"
                            version "/source/firefox-" version ".source.tar.xz"))
        (sha256
-        (base32 "0qpdl3k4n1dzmk9xj1yh0i4vbqgag98sv1lcp83j0axai6xyqnrb"))))
+        (base32 "1kbm95ili3555712l1s6wcmba8iasw2l8lmr2cv0qb944q6ymv3h"))))
     (arguments
      (substitute-keyword-arguments (package-arguments firefox-esr)
        ((#:phases phases)
