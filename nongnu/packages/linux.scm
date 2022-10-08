@@ -70,24 +70,24 @@
 System on hardware which requires nonfree software to function.")))
 
 (define-public linux-5.19
-  (corrupt-linux linux-libre-5.19 "5.19.11"
-                 "0wyrwdqm4dypx2jbb7d8c3b7fl7q5j434d6g9x2v6sw01gwx4m2m"))
+  (corrupt-linux linux-libre-5.19 "5.19.14"
+                 "1h8srn3fw4vw61qi0xxlk9fq0fqq4wl7fbrzz7sivdd8qkhjgv8x"))
 
 (define-public linux-5.15
-  (corrupt-linux linux-libre-5.15 "5.15.70"
-                 "0xhdjz7aqq13pkh1yr7ax3msqdb2xvrcpj464wibn1rl4pq2cz0s"))
+  (corrupt-linux linux-libre-5.15 "5.15.72"
+                 "1aq75z2spa1jvxv9m89gsaxza29n25k8j1f0pg9yj6j7bcxk5430"))
 
 (define-public linux-5.10
-  (corrupt-linux linux-libre-5.10 "5.10.142"
-                 "0s52vfvw5pgnq7gq9n66ib05ryhkxwv765f16862l5gykbdynirz"))
+  (corrupt-linux linux-libre-5.10 "5.10.147"
+                 "16pdpjmvrdml7am7s2kydrif1l7f4aq0wh4ak0xh3dby16zkl9c5"))
 
 (define-public linux-5.4
-  (corrupt-linux linux-libre-5.4 "5.4.212"
-                 "1hngr4hsrcd6hmlyvc3msy5racniav2jagp5abmp7xsxv0yjxiq9"))
+  (corrupt-linux linux-libre-5.4 "5.4.216"
+                 "19vyxa0yzdf4w48jamjfz6kpiaaa7mjjz5gs2awckzilfc0n4pyf"))
 
 (define-public linux-4.19
-  (corrupt-linux linux-libre-4.19 "4.19.257"
-                 "0izaldl2l2zsshkd07qsnr9x6ikipmj5jp7lxr8dyz7kf2m17pga"))
+  (corrupt-linux linux-libre-4.19 "4.19.261"
+                 "1cicb3zydpka9yjx875hbh305bsdvni2kp674pkvaw04pnc35hxy"))
 
 (define-public linux-4.14
   (corrupt-linux linux-libre-4.14 "4.14.292"
@@ -102,13 +102,13 @@ System on hardware which requires nonfree software to function.")))
 (define-public linux-lts linux-5.15)
 
 (define-public linux-arm64-generic-5.19
-  (corrupt-linux linux-libre-arm64-generic "5.19.8"
-                 "1kl7fifsa6vsm34xg3kd2svhx18n771hfj67nhwnlalmb9whhqv1"
+  (corrupt-linux linux-libre-arm64-generic "5.19.14"
+                 "1h8srn3fw4vw61qi0xxlk9fq0fqq4wl7fbrzz7sivdd8qkhjgv8x"
 		 #:name "linux-arm64-generic"))
 
 (define-public linux-arm64-generic-5.15
-  (corrupt-linux linux-libre-arm64-generic "5.15.67"
-                 "0h7r2k59jsw8ykb2p7nxrpazbwx1n5p3nmfbbj1lhib91fldjiys"
+  (corrupt-linux linux-libre-arm64-generic "5.15.72"
+                 "1aq75z2spa1jvxv9m89gsaxza29n25k8j1f0pg9yj6j7bcxk5430"
 		 #:name "linux-arm64-generic"))
 
 (define-public linux-arm64-generic linux-arm64-generic-5.19)
