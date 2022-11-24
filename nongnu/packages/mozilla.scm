@@ -1,7 +1,7 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2013, 2015 Andreas Enge <andreas@enge.fr>
 ;;; Copyright © 2013, 2014, 2015, 2016, 2017, 2018, 2019 Ludovic Courtès <ludo@gnu.org>
-;;; Copyright © 2014, 2015, 2016, 2017, 2018, 2019, 2020 Mark H Weaver <mhw@netris.org>
+;;; Copyright © 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2015 Sou Bunnbu <iyzsong@gmail.com>
 ;;; Copyright © 2016, 2017, 2018, 2019 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 Alex Griffin <a@ajgrf.com>
@@ -86,52 +86,12 @@
   #:use-module (gnu packages xorg)
   #:use-module (unnsvc packages rust))
 
-;; Copied from guix/gnu/packages/rust.scm
-(define* (rust-uri version #:key (dist "static"))
-  (string-append "https://" dist ".rust-lang.org/dist/"
-                 "rustc-" version "-src.tar.gz"))
-
-(define* (rust-bootstrapped-package base-rust version checksum)
-  "Bootstrap rust VERSION with source checksum CHECKSUM using BASE-RUST."
-  (package
-    (inherit base-rust)
-    (version version)
-    (source
-     (origin
-       (inherit (package-source base-rust))
-       (uri (rust-uri version))
-       (sha256 (base32 checksum))))
-    (native-inputs
-     (alist-replace "cargo-bootstrap" (list base-rust "cargo")
-                    (alist-replace "rustc-bootstrap" (list base-rust)
-                                   (package-native-inputs base-rust))))))
-
-(define rust-firefox-1.61
-  (let ((base-rust (rust-bootstrapped-package
-                    rust "1.61.0"
-                    "1vfs05hkf9ilk19b2vahqn8l6k17pl9nc1ky9kgspaascx8l62xd")))
-    (package
-      (inherit base-rust)
-      (arguments
-       (substitute-keyword-arguments (package-arguments base-rust)
-         ((#:phases phases)
-          `(modify-phases ,phases
-             (add-after 'unpack 'disable-tests-with-sigint
-               ;; These tests rely on killing a process with SIGINT which
-               ;; fails in the build container.
-               (lambda _
-                 (substitute* "library/std/src/sys/unix/process/process_common/tests.rs"
-                   (("fn test_process_group_posix_spawn")
-                    "#[ignore]\nfn test_process_group_posix_spawn")
-                   (("fn test_process_group_no_posix_spawn")
-                    "#[ignore]\nfn test_process_group_no_posix_spawn")))))))))))
-
 ;; Define the versions of rust needed to build firefox, trying to match
 ;; upstream.  See the file taskcluster/ci/toolchain/rust.yml at
 ;; https://searchfox.org under the particular firefox release, like
 ;; mozilla-esr102.
 (define-public rust-firefox-esr rust) ; 1.60 is the default in Guix
-(define-public rust-firefox rust-firefox-1.61) ; 1.63 is also listed, but 1.61 is the minimum needed
+(define-public rust-firefox (@@ (gnu packages rust) rust-1.61)) ; 1.63 is also listed, but 1.61 is the minimum needed
 
 ;; rust-cbindgen-0.23/0.24 dependencies
 (define-public rust-unicode-ident-1
@@ -289,19 +249,19 @@ according to Unicode Standard Annex #31")
 
 ;; Update this id with every firefox update to it's release date.
 ;; It's used for cache validation and therefor can lead to strange bugs.
-(define %firefox-esr-build-id "20221018000000")
+(define %firefox-esr-build-id "20221115000000")
 
 (define-public firefox-esr
   (package
     (name "firefox-esr")
-    (version "102.4.0esr")
+    (version "102.5.0esr")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://archive.mozilla.org/pub/firefox/releases/"
                            version "/source/firefox-" version ".source.tar.xz"))
        (sha256
-        (base32 "0klh3lbm0zdmv90kmmpkzgn15pfjibr7zsjy3kvbzpql97fhv7z7"))))
+        (base32 "1n2pq165fxmvgcr5mv3hhaid2vn7lh3jg03lf13kz4c5295x8z81"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -349,7 +309,12 @@ according to Unicode Standard Annex #31")
       #:imported-modules %cargo-utils-modules
       #:modules `((ice-9 regex)
                   (ice-9 ftw)
+                  (srfi srfi-1)
                   (srfi srfi-26)
+                  (rnrs bytevectors)
+                  (rnrs io ports)
+                  (guix elf)
+                  (guix build gremlin)
                   ,@%gnu-build-system-modules)
       #:phases
       #~(modify-phases %standard-phases
@@ -509,6 +474,19 @@ according to Unicode Standard Annex #31")
             (lambda _ (invoke "./mach" "install")))
           (add-after 'install 'wrap-program
             (lambda* (#:key inputs outputs #:allow-other-keys)
+              ;; The following two functions are from Guix's icecat package in
+              ;; (gnu packages gnuzilla).  See commit
+              ;; b7a0935420ee630a29b7e5ac73a32ba1eb24f00b.
+              (define (runpath-of lib)
+                (call-with-input-file lib
+                  (compose elf-dynamic-info-runpath
+                           elf-dynamic-info
+                           parse-elf
+                           get-bytevector-all)))
+              (define (runpaths-of-input label)
+                (let* ((dir (string-append (assoc-ref inputs label) "/lib"))
+                       (libs (find-files dir "\\.so$")))
+                  (append-map runpath-of libs)))
               (let* ((out (assoc-ref outputs "out"))
                      (lib (string-append out "/lib"))
                      ;; TODO: make me a loop again
@@ -519,6 +497,20 @@ according to Unicode Standard Annex #31")
                      ;; For hardware video acceleration via VA-API
                      (libva-lib (string-append (assoc-ref inputs "libva")
                                                "/lib"))
+                     ;; VA-API is run in the RDD (Remote Data Decoder) sandbox
+                     ;; and must be explicitly given access to files it needs.
+                     ;; Rather than adding the whole store (as Nix had
+                     ;; upstream do, see
+                     ;; <https://github.com/NixOS/nixpkgs/pull/165964> and
+                     ;; linked upstream patches), we can just follow the
+                     ;; runpaths of the needed libraries to add everything to
+                     ;; LD_LIBRARY_PATH.  These will then be accessible in the
+                     ;; RDD sandbox.
+                     (rdd-whitelist
+                      (map (cut string-append <> "/")
+                           (delete-duplicates
+                            (append-map runpaths-of-input
+                                        '("mesa" "ffmpeg")))))
                      (pulseaudio-lib (string-append (assoc-ref inputs "pulseaudio")
                                                     "/lib"))
                      ;; For U2F and WebAuthn
@@ -527,7 +519,7 @@ according to Unicode Standard Annex #31")
                                                "/share")))
                 (wrap-program (car (find-files lib "^firefox$"))
                   `("LD_LIBRARY_PATH" prefix (,mesa-lib ,libnotify-lib ,libva-lib
-                                              ,pulseaudio-lib ,eudev-lib))
+                                              ,pulseaudio-lib ,eudev-lib ,@rdd-whitelist))
                   `("XDG_DATA_DIRS" prefix (,gtk-share))
                   `("MOZ_LEGACY_PROFILES" = ("1"))
                   `("MOZ_ALLOW_DOWNGRADE" = ("1"))))))
@@ -674,20 +666,20 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
 
 ;; Update this id with every firefox update to it's release date.
 ;; It's used for cache validation and therefor can lead to strange bugs.
-(define %firefox-build-id "20221026000000")
+(define %firefox-build-id "20221115000000")
 
 (define-public firefox
   (package
     (inherit firefox-esr)
     (name "firefox")
-    (version "106.0.2")
+    (version "107.0")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://archive.mozilla.org/pub/firefox/releases/"
                            version "/source/firefox-" version ".source.tar.xz"))
        (sha256
-        (base32 "1qiz74wbw1vn1xfj8alkx2a95h8xbb3am2n42wyyy8ym1i4khmwh"))))
+        (base32 "0jjqarvs5ppyb3395rs4i39cb55li8q8ha9w72zyjmvv75d2wmla"))))
     (arguments
      (substitute-keyword-arguments (package-arguments firefox-esr)
        ((#:phases phases)
