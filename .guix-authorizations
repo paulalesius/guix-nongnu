@@ -5,22 +5,5 @@
 (authorizations
  (version 0)
 
- (("2A39 3FFF 68F4 EF7A 3D29  12AF 6F51 20A0 22FB B2D5"
-   (name "ajgrf"))
-  ("50F3 3E2E 5B0C 3D90 0424  ABE8 9BDC F497 A4BB CC7F"
-   (name "ambrevar"))
-  ("5DA3 74E1 EADB DC7C 772D  5E65 5E76 B1AD 0FC2 2F93"
-   (name "ison"))
-  (;; primary: "1BA4 08C5 8BF2 0EA7 3179  635A 865D C0A3 DED9 B5D0"
-   "E31D 9DDE EBA5 4A14 8A20  4550 DA45 97F9 47B4 1025"
-   (name "jlicht"))
-  ("8141 6036 E81A 5CF7 8F80  1071 ECFC 8398 8B4E 4B9F"
-   (name "jonsger"))
-  ("AB7C 0B82 B5DC A8BB 94F7  AC94 4FC8 0465 FEDC EB19"
-   (name "paul"))
-  ("D319 C7A9 8F2C 3A11 D9C0  0E30 F369 0CBE 3152 EF58"
-   (name "pineapples"))
-  ("A420 7B56 C255 109F 2CB3  157E 4990 97AE 5EA8 15D9"
-   (name "podiki"))
-  ("1EFB 0909 1F17 D28C CBF9  B13A 53D4 57B2 D636 EE82"
-   (name "roptat"))))
+ (("AB7C 0B82 B5DC A8BB 94F7  AC94 4FC8 0465 FEDC EB19"
+   (name "paul"))))
