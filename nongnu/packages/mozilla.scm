@@ -68,8 +68,7 @@
   #:use-module (gnu packages video)
   #:use-module (nongnu packages wasm)
   #:use-module (gnu packages xdisorg)
-  #:use-module (gnu packages xorg)
-  #:use-module (unnsvc packages rust))
+  #:use-module (gnu packages xorg))
 
 ;; Define the versions of rust needed to build firefox, trying to match
 ;; upstream.  See the file taskcluster/ci/toolchain/rust.yml at
@@ -539,10 +538,8 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
        (replace "icu4c" icu4c-73)))
     (native-inputs
      (modify-inputs (package-native-inputs firefox-esr)
-       ;;(replace "rust" rust-firefox)
-       ;;(replace "rust:cargo" `(,rust-firefox "cargo"))
-       (replace "rust" rust-1.64)
-       (replace "rust:cargo" `(,rust-1.64 "cargo"))
+       (replace "rust" rust-firefox)
+       (replace "rust:cargo" `(,rust-firefox "cargo"))
        (replace "node" node-lts)
        (replace "rust-cbindgen" rust-cbindgen-0.24)))
     (description
@@ -584,4 +581,3 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
                          out "/share/applications/firefox.desktop")
              ((firefox) out))
            #t))))))
-
