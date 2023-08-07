@@ -1,11 +1,12 @@
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2019, 2020 Alex Griffin <a@ajgrf.com>
 ;;; Copyright © 2019 Pierre Neidhardt <mail@ambrevar.xyz>
 ;;; Copyright © 2019 Giacomo Leidi <goodoldpaul@autistici.org>
 ;;; Copyright © 2019 Timotej Lazar <timotej.lazar@araneo.si>
 ;;; Copyright © 2020, 2021 James Smith <jsubuntuxp@disroot.org>
 ;;; Copyright © 2020, 2021, 2022 Jonathan Brielmaier <jonathan.brielmaier@web.de>
-;;; Copyright © 2020 Michael Rohleder <mike@rohleder.de>
-;;; Copyright © 2020, 2021 Tobias Geerinckx-Rice <me@tobias.gr>
+;;; Copyright © 2020, 2022 Michael Rohleder <mike@rohleder.de>
+;;; Copyright © 2020, 2021, 2022 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2020, 2021, 2022 Zhu Zihao <all_but_last@163.com>
 ;;; Copyright © 2021 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2021 Brice Waegeneire <brice@waegenei.re>
@@ -16,25 +17,18 @@
 ;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2022 Remco van 't Veer <remco@remworks.net>
 ;;; Copyright © 2022 Simen Endsjø <simendsjo@gmail.com>
-
-;;;
-;;; This program is free software: you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation, either version 3 of the License, or
-;;; (at your option) any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;;; Copyright © 2022 Leo Famulari <leo@famulari.name>
+;;; Copyright © 2023 Krzysztof Baranowski <pharcosyle@gmail.com>
+;;; Copyright © 2023 Morgan Smith <Morgan.J.Smith@outlook.com>
+;;; Copyright © 2023 Jelle Licht <jlicht@fsfe.org>
+;;; Copyright © 2023 Adam Kandur <rndd@tuta.io>
+;;; Copyright © 2023 Hilton Chain <hako@ultrarare.space>
 
 (define-module (nongnu packages linux)
   #:use-module (gnu packages)
   #:use-module (gnu packages base)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages cpio)
   #:use-module (gnu packages linux)
   #:use-module (guix licenses)
   #:use-module (guix packages)
@@ -48,86 +42,219 @@
   #:use-module (guix build-system trivial)
   #:use-module (ice-9 match)
   #:use-module (nonguix licenses)
+  #:use-module (srfi srfi-1)
   #:export (corrupt-linux))
 
-(define (linux-urls version)
-  "Return a list of URLS for Linux VERSION."
-  (list (string-append "https://www.kernel.org/pub/linux/kernel/v"
-                       (version-major version) ".x/linux-" version ".tar.xz")))
+(define %default-extra-linux-options
+  (@@ (gnu packages linux) %default-extra-linux-options))
 
-(define* (corrupt-linux freedo version hash #:key (name "linux"))
-  (package
-    (inherit freedo)
-    (name name)
-    (version version)
-    (source (origin
-              (method url-fetch)
-              (uri (linux-urls version))
-              (sha256 (base32 hash))))
-    (home-page "https://www.kernel.org/")
-    (synopsis "Linux kernel with nonfree binary blobs included")
-    (description
-     "The unmodified Linux kernel, including nonfree blobs, for running Guix
-System on hardware which requires nonfree software to function.")))
+(define config->string
+  (@@ (gnu packages linux) config->string))
 
-(define-public linux-6.0
-  (corrupt-linux linux-libre-6.0 "6.0.9"
-                 "1irip1yk62carcisxlacwcxsiqib4qswx6h5mfhv8f97x04a4531"))
+(define (linux-url version)
+  "Return a URL for Linux VERSION."
+  (string-append "mirror://kernel.org"
+                       "/linux/kernel/v" (version-major version) ".x"
+                       "/linux-" version ".tar.xz"))
+
+(define* (corrupt-linux freedo
+                        #:key
+                        (name "linux")
+                        (configs '())
+                        (defconfig #f))
+
+  ;; TODO: This very directly depends on guix internals.
+  ;; Throw it all out when we manage kernel hashes.
+  (define gexp-inputs (@@ (guix gexp) gexp-inputs))
+
+  (define extract-gexp-inputs
+    (compose gexp-inputs force origin-uri))
+
+  (define (find-source-hash sources url)
+    (let ((versioned-origin
+           (find (lambda (source)
+                   (let ((uri (origin-uri source)))
+                     (and (string? uri) (string=? uri url)))) sources)))
+      (if versioned-origin
+          (origin-hash versioned-origin)
+          #f)))
+
+  (let* ((version (package-version freedo))
+         (url (linux-url version))
+         (pristine-source (package-source freedo))
+         (inputs (map gexp-input-thing (extract-gexp-inputs pristine-source)))
+         (sources (filter origin? inputs))
+         (hash (find-source-hash sources url)))
+    (package
+      (inherit
+       (customize-linux
+        #:name name
+        #:source (origin
+                   (method url-fetch)
+                   (uri url)
+                   (hash hash))
+        #:configs configs
+        #:defconfig defconfig))
+      (version version)
+      (home-page "https://www.kernel.org/")
+      (synopsis "Linux kernel with nonfree binary blobs included")
+      (description
+       "The unmodified Linux kernel, including nonfree blobs, for running Guix System
+on hardware which requires nonfree software to function."))))
+
+(define-public linux-6.4
+  (corrupt-linux linux-libre-6.4))
+
+(define-public linux-6.3
+  (corrupt-linux linux-libre-6.3))
+
+(define-public linux-6.1
+  (corrupt-linux linux-libre-6.1))
 
 (define-public linux-5.15
-  (corrupt-linux linux-libre-5.15 "5.15.79"
-                 "0m61k7k6lj24z9a266q08wzghggjik2wizcabdwd1vn0vcqr18yb"))
+  (corrupt-linux linux-libre-5.15))
 
 (define-public linux-5.10
-  (corrupt-linux linux-libre-5.10 "5.10.155"
-                 "1wyla96qsdf50n7qjj4hdf36bj56whv7gc9mgw9bvrsqdi92gc7i"))
+  (corrupt-linux linux-libre-5.10))
 
 (define-public linux-5.4
-  (corrupt-linux linux-libre-5.4 "5.4.224"
-                 "0dixs4w7nmkjgxv9dxgjdy8v6r4parkpqyvdfyr0wqk0amdz4zcb"))
+  (corrupt-linux linux-libre-5.4))
 
 (define-public linux-4.19
-  (corrupt-linux linux-libre-4.19 "4.19.265"
-                 "1l5cdpgng1gci1p1gdr2jzqw486h3w56gpyc7fbq74hlc6nnwh1p"))
+  (corrupt-linux linux-libre-4.19))
 
 (define-public linux-4.14
-  (corrupt-linux linux-libre-4.14 "4.14.299"
-                 "0p5ic2mrb9vl3qkzvqxhia3kygjv8xa6s1kqkwgd6b4rmq1kc8r6"))
+  (corrupt-linux linux-libre-4.14))
 
-(define-public linux-4.9
-  (corrupt-linux linux-libre-4.9 "4.9.333"
-                 "0ash877gkrrc063h6ncl9d4gzyhndanpxsdgf1a93abbfv281gs1"))
-
-(define-public linux linux-6.0)
+(define-public linux linux-6.3)
 ;; linux-lts points to the *newest* released long-term support version.
-(define-public linux-lts linux-5.15)
+(define-public linux-lts linux-6.1)
 
-(define-public linux-arm64-generic-6.0
-  (corrupt-linux linux-libre-arm64-generic "6.0.9"
-                 "1irip1yk62carcisxlacwcxsiqib4qswx6h5mfhv8f97x04a4531"
-		 #:name "linux-arm64-generic"))
+(define-public linux-arm64-generic-5.10
+  (corrupt-linux linux-libre-arm64-generic-5.10 #:name "linux-arm64-generic"))
 
-(define-public linux-arm64-generic-5.15
-  (corrupt-linux linux-libre-arm64-generic "5.15.79"
-                 "0m61k7k6lj24z9a266q08wzghggjik2wizcabdwd1vn0vcqr18yb"
-		 #:name "linux-arm64-generic"))
+(define-public linux-arm64-generic-5.4
+  (corrupt-linux linux-libre-arm64-generic-5.4 #:name "linux-arm64-generic"))
 
-(define-public linux-arm64-generic linux-arm64-generic-6.0)
+(define-public linux-arm64-generic
+  (corrupt-linux linux-libre-arm64-generic #:name "linux-arm64-generic"))
 
-(define-public linux-arm64-generic-lts linux-arm64-generic-5.15)
+
+;;;
+;;; Linux-XanMod
+;;;
+
+(define (make-linux-xanmod-source version xanmod-revision hash-string)
+  (origin
+    (method url-fetch)
+    (uri (string-append "https://gitlab.com/xanmod/linux/-/archive/"
+                        version "-" xanmod-revision ".tar.bz2"))
+    (sha256 hash-string)))
+
+(define* (make-linux-xanmod version xanmod-revision source
+                            #:key
+                            (name "linux-xanmod")
+                            (xanmod-defconfig "config_x86-64-v1"))
+  (let ((defconfig xanmod-defconfig)    ;to be used in phases.
+        (base (customize-linux #:name name
+                               #:source source
+                               #:defconfig xanmod-defconfig
+                               ;; EXTRAVERSION is used instead.
+                               #:configs (config->string
+                                          '(("CONFIG_LOCALVERSION" . "")))
+                               #:extra-version xanmod-revision)))
+    (package
+      (inherit base)
+      (version version)
+      (arguments
+       (substitute-keyword-arguments (package-arguments base)
+         ((#:phases phases)
+          #~(modify-phases #$phases
+              ;; EXTRAVERSION is used instead.
+              (add-after 'unpack 'remove-localversion
+                (lambda _
+                  (when (file-exists? "localversion")
+                    (delete-file "localversion"))))
+              (add-before 'configure 'add-xanmod-defconfig
+                (lambda _
+                  (rename-file
+                   (string-append "CONFIGS/xanmod/gcc/" #$defconfig)
+                   ".config")
+
+                  ;; Adapted from `make-linux-libre*'.
+                  (chmod ".config" #o666)
+                  (let ((port (open-file ".config" "a"))
+                        (extra-configuration
+                         #$(config->string
+                            ;; FIXME: There might be other support missing.
+                            (append '(("CONFIG_BLK_DEV_NVME" . #t)
+                                      ("CONFIG_CRYPTO_XTS" . m)
+                                      ("CONFIG_VIRTIO_CONSOLE" . m))
+                                    %default-extra-linux-options))))
+                    (display extra-configuration port)
+                    (close-port port))
+                  (invoke "make" "oldconfig")
+
+                  (rename-file
+                   ".config"
+                   (string-append "arch/x86/configs/" #$defconfig))))))))
+      (native-inputs
+       (modify-inputs (package-native-inputs base)
+         ;; cpio is needed for CONFIG_IKHEADERS.
+         (append cpio zstd)))
+      (home-page "https://xanmod.org/")
+      (supported-systems '("x86_64-linux"))
+      (synopsis
+       "Linux kernel distribution with custom settings and new features")
+      (description
+       "This package provides XanMod kernel, a general-purpose Linux kernel
+distribution with custom settings and new features.  It's built to provide a
+stable, responsive and smooth desktop experience."))))
+
+;; Linux-XanMod sources
+(define-public linux-xanmod-version "6.4.3")
+(define-public linux-xanmod-revision "xanmod1")
+(define-public linux-xanmod-source
+  (make-linux-xanmod-source
+   linux-xanmod-version
+   linux-xanmod-revision
+   (base32 "0z6f7lnwbw2y7wwfr253d6gg4kz0l62s71pj266hb9c0dj15xl0r")))
+
+(define-public linux-xanmod-lts-version "6.1.38")
+(define-public linux-xanmod-lts-revision "xanmod1")
+(define-public linux-xanmod-lts-source
+  (make-linux-xanmod-source
+   linux-xanmod-lts-version
+   linux-xanmod-lts-revision
+   (base32 "0c56jmvzzn8jakxffifnrj6pixywrlcwq6sxriylqxfq96bb8can")))
+
+;; Linux-XanMod packages
+(define-public linux-xanmod
+  (make-linux-xanmod linux-xanmod-version
+                     linux-xanmod-revision
+                     linux-xanmod-source))
+
+(define-public linux-xanmod-lts
+  (make-linux-xanmod linux-xanmod-lts-version
+                     linux-xanmod-lts-revision
+                     linux-xanmod-lts-source))
+
+
+;;;
+;;; Firmwares
+;;;
 
 (define-public linux-firmware
   (package
     (name "linux-firmware")
-    (version "20221109")
+    (version "20230804")
     (source (origin
               (method url-fetch)
-              (uri (string-append "https://git.kernel.org/pub/scm/linux/kernel"
-                                  "/git/firmware/linux-firmware.git/snapshot/"
-                                  "linux-firmware-" version ".tar.gz"))
+              (uri (string-append "mirror://kernel.org/linux/kernel/firmware/"
+                                  "linux-firmware-" version ".tar.xz"))
               (sha256
                (base32
-                "16yv7snsy5zvcwwzy0sr0lx3nf74qhi3nammdsx8c28rdm19jcn2"))))
+                "125ngpwybwyfx6zdqvqzxs84d5wj3kcl2jad801kpvj771a6rm48"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f
@@ -573,8 +700,8 @@ package contains nonfree firmware for the following chips:
   (deprecated-package "rtl-bt-firmware" realtek-firmware))
 
 (define-public rtl8192eu-linux-module
-  (let ((commit "1c42c4d780314add13dc7ad64f983e297f155499")
-        (revision "4"))
+  (let ((commit "865656c3a1d1aee8c4ba459ce7608756d17c712f")
+        (revision "5"))
     (package
       (name "rtl8192eu-linux-module")
       (version (git-version "0.0.0" revision commit))
@@ -587,7 +714,7 @@ package contains nonfree firmware for the following chips:
          (file-name (git-file-name name version))
          (sha256
           (base32
-           "03kpm0vdjk1cnwn0y00fm56gd3pkcz1vvh9ybj4hrpsrklbbwi2p"))))
+           "08nq0wlrpzm8n2g14c4jlxs0crr6s5ls1n14bc17zmpy9vlarhfx"))))
       (build-system linux-module-build-system)
       (arguments
        `(#:make-flags
@@ -609,7 +736,131 @@ network adapters.")
       ;; hal/rtl8192e/hal8192e_fw.c
       (license gpl2))))
 
+(define-public rtl8821ce-linux-module
+  (let ((commit "a478095a45d8aa957b45be4f9173c414efcacc6f")
+        (revision "10"))
+    (package
+      (name "rtl8821ce-linux-module")
+      (version (git-version "0.0.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/tomaspinho/rtl8821ce")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32
+           "00cn87jjrcxjqr3n8jv4w3n64zksmzz05fdr1gdvnbx1ab5739f6"))))
+      (build-system linux-module-build-system)
+      (arguments
+       (list #:make-flags
+             #~(list (string-append "CC=" #$(cc-for-target))
+                     (string-append "KSRC="
+                                    (assoc-ref %build-inputs
+                                               "linux-module-builder")
+                                    "/lib/modules/build"))
+             #:phases
+             #~(modify-phases %standard-phases
+                 (replace 'build
+                   (lambda* (#:key (make-flags '()) (parallel-build? #t)
+                                   #:allow-other-keys)
+                     (apply invoke "make"
+                            `(,@(if parallel-build?
+                                    `("-j" ,(number->string (parallel-job-count)))
+                                    '())
+                              ,@make-flags)))))
+             #:tests? #f))                  ; no test suite
+      (home-page "https://github.com/tomaspinho/rtl8821ce")
+      (synopsis "Linux driver for Realtek RTL8821CE wireless network adapters")
+      (description "This is Realtek's RTL8821CE Linux driver for wireless
+network adapters.")
+      ;; Rejected by Guix beause it contains a binary blob in:
+      ;; hal/rtl8821c/hal8821c_fw.c
+      (license gpl2))))
+
+(define-public rtl8812au-aircrack-ng-linux-module
+  (let ((commit "35308f4dd73e77fa572c48867cce737449dd8548")
+        (revision "11"))
+    (package
+      (inherit rtl8821ce-linux-module)
+      (name "rtl8812au-aircrack-ng-linux-module")
+      (version (git-version "5.6.4.2" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/aircrack-ng/rtl8812au")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1clqrgmq5fhzybbiapmdbhg5qfx9k21r0hqa9pqmyinaqhvfnhfj"))
+         (modules '((guix build utils)))
+         (snippet
+          #~(begin
+              ;; Remove bundled tarballs, APKs, word lists, speadsheets,
+              ;; and other unnecessary unlicenced things.
+              (for-each delete-file-recursively (list "android"
+                                                      "docs"
+                                                      "tools"))))))
+      (supported-systems '("x86_64-linux" "i686-linux"))
+      (home-page "https://github.com/aircrack-ng/rtl8812au")
+      (synopsis "Linux driver for Realtek USB wireless network adapters")
+      (description
+       "This is Realtek's rtl8812au Linux driver for USB 802.11n wireless
+network adapters, modified by the aircrack-ng project to support monitor mode
+and frame injection.  It provides a @code{88XXau} kernel module that supports
+RTL8812AU, RTL8821AU, and RTL8814AU chips.")
+      ;; Rejected by Guix beause it contains a binary blob in:
+      ;; hal/rtl8812a/hal8812a_fw.c
+      (license gpl2+))))
+
+(define-public r8168-linux-module
+  (package
+    (name "r8168-linux-module")
+    (version "8.051.02")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/mtorromeo/r8168")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "16mpr0np6xbmzdnwg4p3q6yli2gh032k98g4vplya33hrn50vh52"))))
+    (arguments
+     (list #:tests? #f
+           #:phases #~(modify-phases %standard-phases
+                        (add-after 'unpack 'enter-src-directory
+                          (lambda _
+                            (chdir "src")))
+                        ;; Needed to compile module for linux >= 6.1
+                        (add-before 'build 'fix-build
+                          (lambda _
+                            (substitute* "r8168.h"
+                              (("netif_napi_add\\(ndev, &priv->napi, function, weight\\)")
+                               "netif_napi_add(ndev, &priv->napi, function)")))))))
+    (build-system linux-module-build-system)
+    (home-page "https://github.com/mtorromeo/r8168")
+    (synopsis "Linux driver for Realtek PCIe network adapters")
+    (description
+     "Linux driver for Realtek PCIe network adapters.  If the r8169 kernel module is
+giving you trouble, you can try this module.")
+    (license gpl2)))
+
 (define broadcom-sta-version "6.30.223.271")
+
+(define (broadcom-sta-patch name commit hash)
+  (origin
+    (method url-fetch)
+    (uri (string-append "https://raw.githubusercontent.com/NixOS/nixpkgs/"
+                        commit
+                        "/pkgs/os-specific/linux/broadcom-sta/"
+                        name
+                        ".patch"))
+    (sha256
+     (base32
+      hash))))
 
 (define broadcom-sta-x86_64-source
   (origin
@@ -619,29 +870,30 @@ network adapters.")
                         (string-replace-substring broadcom-sta-version "." "_")
                         ".tar.gz"))
     (patches
-     (parameterize
-         ((%patch-path
-           (map (lambda (directory)
-                  (string-append directory "/nongnu/packages/patches"))
-                %load-path)))
-       ;; https://github.com/NixOS/nixpkgs/tree/master/pkgs/os-specific/linux/broadcom-sta
-       ;; https://git.archlinux.org/svntogit/community.git/tree/trunk?h=packages/broadcom-wl-dkms
-       (search-patches "broadcom-sta-gcc.patch"
-                       "broadcom-sta-license.patch"
-                       "broadcom-sta-null-pointer-fix.patch"
-                       "broadcom-sta-rdtscl.patch"
-                       "broadcom-sta-linux-4.7.patch"
-                       "broadcom-sta-linux-4.8.patch"
-                       "broadcom-sta-debian-fix-kernel-warnings.patch"
-                       "broadcom-sta-linux-4.11.patch"
-                       "broadcom-sta-linux-4.12.patch"
-                       "broadcom-sta-linux-4.15.patch"
-                       "broadcom-sta-fix_mac_profile_discrepancy.patch"
-                       "broadcom-sta-linux-5.1.patch"
-		       ;; source: https://github.com/NixOS/nixpkgs/commit/8ce65087c333097ab714d23800b69fc471ec48ca
-                       "broadcom-sta-linux-5.6.patch"
-                       "broadcom-sta-linux-5.9.patch"
-                       "broadcom-sta-linux-5.10.patch")))
+     ;; Keep these in sync with the list at
+     ;; https://github.com/NixOS/nixpkgs/tree/master/pkgs/os-specific/linux/broadcom-sta.
+     ;; Nixpkgs is good about keeping broadcom patches up to date so updating
+     ;; for a new kernel release should be as simple as chaging the commit to
+     ;; the newest available and adding any new patches.
+     (let ((commit "355042e2ff5933b245e804c5eaff4ec3f340e71b"))
+       (list
+        (broadcom-sta-patch "i686-build-failure" commit "1522w2gb698svlkb2b4lijbd740agvs2ibpz4g0jlv8v31cybkf4")
+        (broadcom-sta-patch "license" commit "0rwlhafcmpp97cknqwv8gwf8sbxgqavgci1ywfkdxiylh4mhcvhr")
+        (broadcom-sta-patch "linux-4.7" commit "1nn1p6j77s9zfpxy5gl6qg1kha45pc7ww0yfkn5dmhazi288wamf")
+        (broadcom-sta-patch "linux-4.8" commit "0bjx4ayi30jbdm3sh38p52d6dnb3c44mqzqi8g51hhbn1kghkmq9")
+        (broadcom-sta-patch "linux-4.11" commit "1s3n87v9cn3qicd5v4wzj20psl4gcn1ghz0fnsq60n05rriicywp")
+        (broadcom-sta-patch "linux-4.12" commit "1kj7sfnw9hxjxzqm48565vniq7fkhapaqadfpw6l9bcnpf53xld3")
+        (broadcom-sta-patch "linux-4.15" commit "0bvk7nrvqa066dpn6vvb6x00yrxa37iqv87135kay9mllmkjd70b")
+        (broadcom-sta-patch "linux-5.1" commit "1kykpzhs19dwww6grav3qxsd28kn8y84i4b4csx2y5m2j629ncn0")
+        (broadcom-sta-patch "linux-5.6" commit "0v1jkaf60jgjkrjfcmx1gin4b65cdv39glqy7l3cswkmzb60lz4l")
+        (broadcom-sta-patch "linux-5.9" commit "1sgmbaahydk4j3i1jf8q1fz3a210fmakrpz0w1n9v3dcn23ladah")
+        (broadcom-sta-patch "linux-5.17" commit "1qsllvykhs3nvjwv8d6bgsm2sc9a1lxf8yqf6fa99p60ggd253ps")
+        (broadcom-sta-patch "linux-5.18" commit "1img0a0vqnkmq4c21aywq2ajyigzcfhbbpg1hw9nx7cbj9hf6d0l")
+        (broadcom-sta-patch "linux-6.0" commit "0rv74j5giafzl19f01yvfa5rgvsdvcimxzhks2fp44wpnxq241nb")
+        (broadcom-sta-patch "linux-6.1" commit "1pvx1h7iimcbfqdc13n1980ngxk9q6iyip8svn293x4h7jn472kf")
+        (broadcom-sta-patch "pedantic-fix" commit "1kxmw1iyxnfwad75h981sak5qk16p81xy1f2qxss2d0v97vkfkl5")
+        (broadcom-sta-patch "null-pointer-fix" commit "15c2vxgf7v5wy4s8w9jk7irf3fxxghy05gxmav1ss73a2azajdx7")
+        (broadcom-sta-patch "gcc" commit "0jcqk2vapyy2pbsjv9n8b3qp6vqz17d6s07cr04cx7075q7yhz5h"))))
     (sha256
      (base32
       "1gj485qqr190idilacpxwgqyw21il03zph2rddizgj7fbd6pfyaz"))))
@@ -667,7 +919,7 @@ network adapters.")
        (_ broadcom-sta-i686-source)))
     (build-system linux-module-build-system)
     (arguments
-     `(#:linux ,linux-lts
+     `(#:linux ,linux
        #:tests? #f))
     (supported-systems '("i686-linux" "x86_64-linux"))
     (home-page "https://www.broadcom.com/support/802.11")
@@ -688,10 +940,7 @@ Linux device driver for the following chipsets:
 @item BCM4331
 @item BCM4352
 @item BCM4360
-@end itemize
-
-It is recommended that anyone who uses this package stays with Linux LTS
-releases.")
+@end itemize")
     (license (nonfree "https://www.broadcom.com/support/802.11"))))
 
 (define-public broadcom-bt-firmware
@@ -786,10 +1035,44 @@ chipsets from Broadcom:
        "/b60fa04881bf8f9b9d578f57d1dfa596cae2a82e"
        "/LICENSE.broadcom_bcm20702")))))
 
+(define-public facetimehd
+  (package
+    (name "facetimehd")
+    (version "0.5.18")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/patjak/facetimehd")
+             (commit version)))
+       (file-name (git-file-name "facetimehd" version))
+       (sha256
+        (base32
+         "1598pzjnbij3knvqmk2yslj26wmqiqjqgqgcw9p9jx6z7bdjvvsh"))))
+    (build-system linux-module-build-system)
+    (arguments
+     '(#:tests? #f))
+    (synopsis "Linux driver for the FacetimeHD (Broadcom 1570) PCIe webcam")
+    (description "Linux driver for the FacetimeHD webcam.  According to Apple the
+following models contain a Facetime HD camera and should be compatible with this
+driver:
+@itemize
+@item iMac (21,5\", since mid 2011)
+@item iMac (27\", since mid 2011)
+@item MacBook Air (since mid 2011)
+@item MacBook Pro (15\", since early 2011)
+@item MacBook Pro (17\", since early 2011)
+@item MacBook Pro (13\", since early 2011)
+@item Thunderbolt display
+@end itemize")
+    (home-page "https://github.com/patjak/facetimehd")
+    (license gpl2)
+    (supported-systems '("i686-linux" "x86_64-linux"))))
+
 (define-public intel-microcode
   (package
     (name "intel-microcode")
-    (version "20221108")
+    (version "20230613")
     (source
      (origin
        (method git-fetch)
@@ -800,15 +1083,15 @@ chipsets from Broadcom:
              (commit (string-append "microcode-" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1na797jixcwj27brzfy24lwgndc041kbnf1wh1l047nz7nnc35i5"))))
+        (base32 "1clwzzivs6w8d35dpfv6ardi2gnhpsk1sr31dw7vq227yv0pvzml"))))
     (build-system copy-build-system)
     (arguments
-     `(#:install-plan
-       (let ((doc (string-append "share/doc/" ,name "-" ,version "/")))
-         `(("intel-ucode" "lib/firmware/")
-           ("README.md" ,doc)
-           ("releasenote.md" ,doc)
-           ("security.md" ,doc)))))
+     (list #:install-plan
+           #~(let ((doc (string-append "share/doc/" #$name "-" #$version "/")))
+               `(("intel-ucode" "lib/firmware/")
+                 ("README.md" ,doc)
+                 ("releasenote.md" ,doc)
+                 ("security.md" ,doc)))))
     (home-page
      "https://github.com/intel/Intel-Linux-Processor-Microcode-Data-Files")
     (synopsis "Processor microcode firmware for Intel CPUs")
@@ -842,7 +1125,7 @@ documented in the respective processor revision guides.")
 (define-public sof-firmware
   (package
     (name "sof-firmware")
-    (version "2.2.2")
+    (version "2.2.3")
     (source
      (origin
        (method url-fetch)
@@ -850,7 +1133,7 @@ documented in the respective processor revision guides.")
                            version "/sof-bin-v" version ".tar.gz"))
        (sha256
         (base32
-         "1h7waw7ia3xjaprlvkcycamphnpcalrr2sjkhm59w7npwclqzwq0"))))
+         "0hnvzbjgib8f0m2gw345vk0p4h9ba34g7vciih1jgcz2y5kgs7sr"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
@@ -863,44 +1146,3 @@ audio DSPs that can be found on the Intel Skylake architecture.  This
 firmware can be built from source but need to be signed by Intel in order to be
 loaded by Linux.")
     (license bsd-3)))
-
-(define-public rtl8821ce-linux-module
-  (let ((commit "50c1b120b06a3b0805e23ca9a4dbd274d74bb305")
-        (revision "8"))
-    (package
-      (name "rtl8821ce-linux-module")
-      (version (git-version "0.0.0" revision commit))
-      (source
-       (origin
-         (method git-fetch)
-         (uri (git-reference
-               (url "https://github.com/tomaspinho/rtl8821ce")
-               (commit commit)))
-         (file-name (git-file-name name version))
-         (sha256
-          (base32
-           "09dsmbsrpnbpbq4kigq324s8xb567pdjyb5h07kg6xcbcb5npkpz"))))
-      (build-system linux-module-build-system)
-      (arguments
-       (list #:make-flags
-             #~(list (string-append "CC=" #$(cc-for-target))
-                     (string-append "KSRC="
-                                    (assoc-ref %build-inputs
-                                               "linux-module-builder")
-                                    "/lib/modules/build"))
-             #:phases
-             #~(modify-phases %standard-phases
-                 (replace 'build
-                   (lambda* (#:key (make-flags '()) (parallel-build? #t)
-                                   #:allow-other-keys)
-                     (apply invoke "make"
-                            `(,@(if parallel-build?
-                                    `("-j" ,(number->string (parallel-job-count)))
-                                    '())
-                              ,@make-flags)))))
-             #:tests? #f))                  ; no test suite
-      (home-page "https://github.com/tomaspinho/rtl8821ce")
-      (synopsis "Linux driver for Realtek RTL8821CE wireless network adapters")
-      (description "This is Realtek's RTL8821CE Linux driver for wireless
-network adapters.")
-      (license gpl2))))

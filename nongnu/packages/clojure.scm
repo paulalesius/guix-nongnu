@@ -1,22 +1,7 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2019 Pierre Neidhardt <mail@ambrevar.xyz>
 ;;; Copyright © 2020 Jelle Licht <jlicht@fsfe.org>
 ;;; Copyright © 2020 Alex Griffin <a@ajgrf.com>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (nongnu packages clojure)
   #:use-module (gnu packages compression)
@@ -35,14 +20,14 @@
 (define leiningen-jar
   (package
     (name "leiningen-jar")
-    (version "2.9.10")
+    (version "2.10.0")
     (source (origin
               (method url-fetch)
-              (uri "https://codeberg.org/attachments/895a0a0d-f20d-4580-a277-e06b5eec3b6b")
+              (uri "https://codeberg.org/attachments/43cebda5-a7c2-405b-b641-5143a00051b5")
               (file-name "leiningen-standalone.jar")
               (sha256
                (base32
-                "1ja9q8lav83h5qhayjgc39f6yyvk1n5f6gfwznn561xm007m6a52"))))
+                "0d5vmpyp9ddxpj1s5c60fv2f5iimz1chbgfhchlaqxa0sfx9jwnj"))))
     (build-system trivial-build-system)
     (arguments
      `(#:modules ((guix build utils))
@@ -64,7 +49,7 @@ lets you focus on your code.")
   (package
     (inherit leiningen-jar)
     (name "leiningen")
-    (version "2.9.10")
+    (version "2.10.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -73,7 +58,7 @@ lets you focus on your code.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1hl62ykq7sckfpgg5l3wpzq5smh6s572xnadr988vpl97l2x1g4y"))))
+                "0xvniav6iy1yrbamvbg8i3dq8issiczv3rbig2yc3nm08d2q0rig"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f
@@ -100,7 +85,7 @@ lets you focus on your code.")
 (define-public clj-kondo
  (package
    (name "clj-kondo")
-   (version "2022.06.22")
+   (version "2023.01.20")
    (source (origin
              (method url-fetch/zipbomb)
              (uri (string-append
@@ -108,7 +93,7 @@ lets you focus on your code.")
                    version "/clj-kondo-" version "-linux-amd64.zip"))
              (sha256
               (base32
-               "057h48kf14pdnnyvgmbqkga1bspbr4ag22q2279s14c2c9bcinzz"))))
+               "0i91qaqjnrg7ad0rs1r4rjwi77pr16dhck9bflb4kiyggcbs4dds"))))
    (build-system binary-build-system)
    (arguments
     `(#:patchelf-plan

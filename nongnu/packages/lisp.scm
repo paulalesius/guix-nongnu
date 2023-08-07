@@ -1,31 +1,25 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2022 Pierre Neidhardt <mail@ambrevar.xyz>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
+;;; Copyright © 2023 André A. Gomes <andremegafone@gmail.com>
 
 (define-module (nongnu packages lisp)
   #:use-module (ice-9 match)
   #:use-module (gnu packages bash)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages tls)
+  #:use-module (gnu packages node)
+  #:use-module (gnu packages lisp)
+  #:use-module (gnu packages lisp-xyz)
+  ;; #:use-module (gnu packages lisp-check)
+  #:use-module (nongnu packages electron)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
+  #:use-module (guix build-system asdf)
   #:use-module (guix download)
+  #:use-module (guix git-download)
   #:use-module (guix packages)
   #:use-module (nonguix build-system binary)
+  #:use-module ((guix licenses) #:prefix license:)
   #:use-module ((nonguix licenses) #:prefix license:))
 
 ;; TODO: Split into differents outputs:
@@ -53,7 +47,7 @@
                                 "/acl" version "express-" arch2 ".tbz2")))
               (sha256
                (base32
-                "0ir1irpq5hhcmy0yp5p2jpnq5if1gr1fgxybqyvppx1j1jdfkcsp"))))
+                "1zxajn238aibsv0qknm5kiqjiplb4ggynjsxar390rwznh57qc46"))))
     (build-system binary-build-system)
     (inputs (list bash-minimal zlib openssl))
     (arguments
@@ -75,6 +69,16 @@
                      "--directory=source" "-xvf" (assoc-ref inputs "source")
                      "--strip-components" "1")
              (chdir "source")))
+         (add-after 'install 'update-license
+           (lambda* (#:key outputs #:allow-other-keys)
+             (substitute*
+                 (string-append (assoc-ref outputs "out")
+                                "/share/allegro-cl/devel.lic")
+               ((";; License created on January 25, 2021, 8:32:19\\.")
+                ";; License created on January 17, 2023, 10:42:54.")
+               ((";; Expiration date: 2023-1-31 00:00:00")
+                ";; Expiration date: 2024-1-31 00:00:00"))
+             #t))
          (add-after 'install 'wrap-program
            (lambda* (#:key inputs outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
@@ -119,3 +123,36 @@ then open a browser at http://localhost:PORT, where PORT is the indicated port."
     (home-page "https://franz.com/products/allegrocl/")
     (license (license:nonfree
               "https://franz.com/ftp/pub/legal/ACL-Express-20170301.pdf"))))
+
+(define-public sbcl-cl-electron
+  (let ((commit "ec8e3610be26d2d7312fab7d59d840e550b221f2")
+        (revision "1"))
+    (package
+      (name "sbcl-cl-electron")
+      (version (git-version "0.0.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/atlas-engineer/cl-electron")
+               (commit commit)))
+         (file-name (git-file-name "cl-electron" version))
+         (sha256
+          (base32 "0bmnh0xl5pvjv4pdb4a37x87zlyzr5fy7cyaws69p4p4rgzszzv8"))))
+      (build-system asdf-build-system/sbcl)
+      (native-inputs (list ;; sbcl-lisp-unit2
+                           sbcl))
+      (inputs (list electron node
+                    sbcl-cl-json sbcl-iolib sbcl-nclasses
+                    sbcl-parenscript sbcl-bordeaux-threads))
+      (synopsis "Common Lisp interface to Electron")
+      (home-page "https://github.com/atlas-engineer/cl-electron")
+      (description "@command{cl-electron} is a binding to Electron for
+Common Lisp.")
+      (license license:bsd-3))))
+
+(define-public cl-electron
+  (sbcl-package->cl-source-package sbcl-cl-electron))
+
+(define-public ecl-cl-electron
+  (sbcl-package->ecl-package sbcl-cl-electron))

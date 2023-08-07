@@ -1,22 +1,7 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2020 Julien Lepiller <julien@lepiller.eu>
 ;;; Copyright © 2021 Isaac Young <isyoung@pm.me>
 ;;; Copyright © 2022 Jonathan Brielmaier <jonathan.brielmaier@web.de>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (nongnu packages coq)
   #:use-module (ice-9 match)
@@ -30,7 +15,7 @@
 (define-public compcert
   (package
     (name "compcert")
-    (version "3.11")
+    (version "3.12")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -39,7 +24,7 @@
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "183b1fn7vhb9ykxax11x0bb2q6z5jnd874nzlxqnnm89j3ysr134"))))
+                "0pcrkz1as37iz2wcp8j226fjn672lrj0cip2s0wpkiy097qi0yc5"))))
     (build-system gnu-build-system)
     (arguments
      `(#:phases
@@ -47,7 +32,7 @@
          (add-before 'configure 'allow-newer-coq-version
            (lambda _
              (substitute* "configure"
-               (("8.14.0") "8.16.0"))))
+               (("8.15.2") "8.16.1"))))
          (replace 'configure
            (lambda* (#:key outputs #:allow-other-keys)
              (let ((system ,(match (or (%current-target-system) (%current-system))

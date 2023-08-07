@@ -1,3 +1,4 @@
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Per-directory local variables for GNU Emacs 23 and later.
 
 ((nil
@@ -8,7 +9,7 @@
      ;; For use with 'bug-reference-prog-mode'.
      (bug-reference-url-format . "https://gitlab.com/nonguix/nonguix/issues/%s")
      (bug-reference-bug-regexp
-      . "#[0-9]+")))
+      . "\\(#\\([0-9]+\\)\\)")))
  (c-mode          . ((c-file-style . "gnu")))
  (scheme-mode
   .

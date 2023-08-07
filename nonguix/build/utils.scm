@@ -1,30 +1,18 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2019 Pierre Neidhardt <mail@ambrevar.xyz>
 ;;; Copyright © 2020 Alex Griffin <a@ajgrf.com>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
+;;; Copyright © 2023 Giacomo Leidi <goodoldpaul@autistici.org>
 
 (define-module (nonguix build utils)
   #:use-module (ice-9 match)
   #:use-module (ice-9 binary-ports)
   #:use-module (guix build utils)
+  #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-26)
   #:export (64-bit?
             make-wrapper
-            concatenate-files))
+            concatenate-files
+            build-paths-from-inputs))
 
 (define (64-bit? file)
   "Return true if ELF file is in 64-bit format, false otherwise.
@@ -109,3 +97,23 @@ contents:
   (call-with-output-file result
     (lambda (port)
       (for-each (cut dump <> port) files))))
+
+(define build-paths-for-input
+  (lambda (dirs input)
+    (filter-map
+     (lambda (sub-directory)
+       (let ((directory
+              (string-append
+               input "/" sub-directory)))
+         (and
+          (directory-exists? directory)
+          directory)))
+     dirs)))
+
+(define build-paths-from-inputs
+  (lambda (dirs inputs)
+    (reduce append '()
+            (map
+             (lambda (input)
+               (build-paths-for-input dirs input))
+             inputs))))

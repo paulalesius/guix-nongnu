@@ -1,20 +1,5 @@
-;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2022 Pierre Langlois <pierre.langlois@gmx.com>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
+;;; SPDX-License-Identifier: GPL-3.0-or-later
+;;; Copyright © 2022-2023 Pierre Langlois <pierre.langlois@gmx.com>
 
 (define-module (nongnu packages wasm)
   #:use-module (guix base32)
@@ -31,60 +16,62 @@
   #:use-module (gnu packages python))
 
 (define-public wasi-libc
-  (let ((commit "ad5133410f66b93a2381db5b542aad5e0964db96")
-        (revision "1"))
-    (package
-      (name "wasi-libc")
-      (version (git-version "0.1-alpha" revision commit))
-      (source (origin
-                (method git-fetch)
-                (uri (git-reference
-                      (url "https://github.com/WebAssembly/wasi-libc")
-                      (commit commit)
-                      (recursive? #t)))
-                (file-name (git-file-name name version))
-                (sha256
-                 (base32
-                  "146jamq2q24vxjfpcwlqj84wzc80cbpbg0ns2wimyvzbanah48j6"))))
-      (build-system gnu-build-system)
-      (native-inputs (list clang-13))
-      (arguments
-       (list #:tests? #f ;No test suite
-             #:phases
-             #~(modify-phases %standard-phases
-                 (delete 'configure)
-                 (add-before 'build 'set-sysroot-include
-                   (lambda _
-                     (setenv "C_INCLUDE_PATH"
-                             (string-append (getcwd) "/sysroot/include"))))
-                 (add-before 'install 'set-install-dir
-                   (lambda _
-                     (setenv "INSTALL_DIR"
-                             (string-append #$output "/wasm32-wasi")))))))
-      (home-page "https://wasi.dev")
-      (synopsis "WASI libc implementation for WebAssembly")
-      (description
-       "WASI Libc is a libc for WebAssembly programs built on top of WASI
+  (package
+    (name "wasi-libc")
+    (version "sdk-19")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/WebAssembly/wasi-libc")
+                    (commit (string-append "wasi-" version))
+                    (recursive? #t)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0bnpz8wk9wiic938296gxp4vz820bvpi1w41jksjzz5552hql169"))))
+    (build-system gnu-build-system)
+    (native-inputs (list clang-15))
+    (arguments
+     (list #:tests? #f ;No test suite
+           ;; Firefox uses wasm2c to compile WebAssembly to C code, and it
+           ;; does not support the memory.copy opcode.
+           ;; See https://bugzilla.mozilla.org/show_bug.cgi?id=1773200#c4
+           #:make-flags ''("BULK_MEMORY_SOURCES=")
+           #:phases
+           #~(modify-phases %standard-phases
+               (delete 'configure)
+               (add-before 'build 'set-sysroot-include
+                 (lambda _
+                   (setenv "C_INCLUDE_PATH"
+                           (string-append (getcwd) "/sysroot/include"))))
+               (add-before 'install 'set-install-dir
+                 (lambda _
+                   (setenv "INSTALL_DIR"
+                           (string-append #$output "/wasm32-wasi")))))))
+    (home-page "https://wasi.dev")
+    (synopsis "WASI libc implementation for WebAssembly")
+    (description
+     "WASI Libc is a libc for WebAssembly programs built on top of WASI
 system calls.  It provides a wide array of POSIX-compatible C APIs, including
 support for standard I/O, file I/O, filesystem manipulation, memory
 management, time, string, environment variables, program startup, and many
 other APIs.")
-      (license (list
-                ;; For wasi-libc, with LLVM exceptions
-                license:asl2.0
-                ;; For malloc.c.
-                license:cc0
-                ;; For cloudlibc.
-                license:bsd-2
-                ;; For wasi-libc and musl-libc.
-                license:expat)))))
+    (license (list
+              ;; For wasi-libc, with LLVM exceptions
+              license:asl2.0
+              ;; For malloc.c.
+              license:cc0
+              ;; For cloudlibc.
+              license:bsd-2
+              ;; For wasi-libc and musl-libc.
+              license:expat))))
 
 (define-public wasm32-wasi-clang-runtime
-  (package (inherit clang-runtime-13)
+  (package (inherit clang-runtime-15)
     (native-inputs
-     (list clang-13
+     (list clang-15
            wasi-libc))
-    (inputs (list llvm-13))
+    (inputs (list llvm-15))
     (arguments
      (list
       #:build-type "Release"
@@ -107,9 +94,7 @@ other APIs.")
 
               ;; WASM only needs libclang_rt.builtins-wasm32.a from
               ;; compiler-rt.
-              (string-append "../compiler-rt-"
-                             #$(package-version clang-runtime-13)
-                             ".src/lib/builtins"))))))
+              "../source/compiler-rt/lib/builtins")))))
 
 ;; FIXME: Ideally we wouldn't need to build a separate compiler because clang
 ;; can support multiple targets at runtime.  However Guix patches the default
@@ -117,12 +102,10 @@ other APIs.")
 ;; upstream Guix's support for cross-compiling with clang.
 
 (define clang-from-llvm (@@ (gnu packages llvm) clang-from-llvm))
+(define llvm-monorepo (@@ (gnu packages llvm) llvm-monorepo))
 
 (define-public wasm32-wasi-clang
-  (let ((base (clang-from-llvm llvm-13 wasm32-wasi-clang-runtime
-                               (bytevector->nix-base32-string
-                                (content-hash-value
-                                 (origin-hash (package-source clang-13)))))))
+  (let ((base (clang-from-llvm llvm-15 wasm32-wasi-clang-runtime)))
     (package (inherit base)
       (name "wasm32-wasi-clang")
       (inputs
@@ -143,17 +126,8 @@ other APIs.")
 (define-public wasm32-wasi-libcxx
   (package
     (name "wasm32-wasi-libcxx")
-    (version "13.0.0")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/llvm/llvm-project")
-             (commit (string-append "llvmorg-" version))))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32
-         "0cjl0vssi4y2g4nfr710fb6cdhxmn5r0vis15sf088zsc5zydfhw"))))
+    (version (package-version llvm-15))
+    (source (llvm-monorepo version))
     (build-system cmake-build-system)
     (arguments
      (list

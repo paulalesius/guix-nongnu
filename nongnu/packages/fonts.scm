@@ -1,25 +1,11 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2021 Korytov Pavel <thexcloud@gmail.com>
 ;;; Copyright © 2021 Jonathan Brielmaier <jonathan.brielmaier@web.de>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (nongnu packages fonts)
   #:use-module (ice-9 string-fun)
   #:use-module (gnu packages compression)
+  #:use-module (guix deprecation)
   #:use-module (guix download)
   #:use-module (guix packages)
   #:use-module (guix build-system font)
@@ -90,12 +76,15 @@ font from the pack of Microsoft core fonts for the web."))
    #:font-name "Comic Sans MS"
    #:hash "0ki0rljjc1pxkbsxg515fwx15yc95bdyaksa3pjd89nyxzzg6vcw"))
 
-(define-public font-microsoft-couirer-new
+(define-public font-microsoft-courier-new
   (mscorefont
    "courie32"
    #:version "2.82"
    #:font-name "Courier New"
    #:hash "111k3waxki9yyxpjwl2qrdkswvsd2dmvhbjmmrwyipam2s31sldv"))
+
+(define-public font-microsoft-couirer-new
+  (deprecated-package "font-microsoft-couirer-new" font-microsoft-courier-new))
 
 (define-public font-microsoft-georgia
   (mscorefont

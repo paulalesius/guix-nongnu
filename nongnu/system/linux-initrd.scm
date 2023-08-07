@@ -1,17 +1,5 @@
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2020 Alex Griffin <a@ajgrf.com>
-;;;
-;;; This program is free software: you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation, either version 3 of the License, or
-;;; (at your option) any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 (define-module (nongnu system linux-initrd)
   #:use-module (gnu system linux-initrd)
@@ -79,7 +67,9 @@ MICROCODE-PACKAGES, in the format expected by the kernel."
                "/initrd.cpio"))
 
 (define (combined-initrd . initrds)
-  "Return a combined initrd, the result of concatenating INITRDS."
+  "Return a combined initrd, the result of concatenating INITRDS.  This relies
+on the kernel ability to detect and load multiple initrds archives from a
+single file."
   (define builder
     (with-imported-modules (source-module-closure
                             '((guix build utils)
@@ -87,13 +77,28 @@ MICROCODE-PACKAGES, in the format expected by the kernel."
                             #:select? import-nonguix-module?)
       #~(begin
           (use-modules (guix build utils)
-                       (nonguix build utils))
+                       (nonguix build utils)
+                       (srfi srfi-1))
 
           ;; Use .img suffix since the result is no longer easily inspected by
           ;; standard tools like cpio and gzip.
-          (let ((initrd (string-append #$output "/initrd.img")))
+          ;;
+          ;; The initrds may contain "references" files to keep some items
+          ;; such as the static guile alive.  Concatenate them in a single,
+          ;; top-level references file.
+          (let ((initrd (string-append #$output "/initrd.img"))
+                (references
+                 (filter-map
+                  (lambda (initrd)
+                    (let ((ref (string-append (dirname initrd)
+                                              "/references")))
+                      (and (file-exists? ref) ref)))
+                  '#$initrds))
+                (new-references
+                 (string-append #$output "/references")))
             (mkdir-p #$output)
-            (concatenate-files '#$initrds initrd)))))
+            (concatenate-files '#$initrds initrd)
+            (concatenate-files references new-references)))))
 
   (file-append (computed-file "combined-initrd" builder)
                "/initrd.img"))

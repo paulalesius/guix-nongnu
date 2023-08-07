@@ -1,29 +1,16 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2020 Hebi Li <hebi@lihebi.com>
 ;;; Copyright © 2020 Malte Frank Gerdes <malte.f.gerdes@gmail.com>
 ;;; Copyright © 2020, 2021 Jean-Baptiste Volatier <jbv@pm.me>
 ;;; Copyright © 2020-2022 Jonathan Brielmaier <jonathan.brielmaier@web.de>
 ;;; Copyright © 2021 Pierre Langlois <pierre.langlois@gmx.com>
-;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
+;;; Copyright © 2022, 2023 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2022 Alexey Abramov <levenson@mmer.org>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; This program is free software: you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation, either version 3 of the License, or
-;;; (at your option) any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;;; Copyright © 2022 Hilton Chain <hako@ultrarare.space>
 
 (define-module (nongnu packages nvidia)
   #:use-module (guix packages)
+  #:use-module (guix deprecation)
   #:use-module (guix download)
   #:use-module (guix gexp)
   #:use-module (guix git-download)
@@ -31,15 +18,19 @@
   #:use-module ((guix licenses) #:prefix license-gnu:)
   #:use-module ((nonguix licenses) #:prefix license:)
   #:use-module (guix build-system linux-module)
+  #:use-module (guix build-system cmake)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
+  #:use-module (guix build-system python)
   #:use-module (guix build-system trivial)
   #:use-module (gnu packages base)
   #:use-module (gnu packages bash)
   #:use-module (gnu packages bootstrap)
+  #:use-module (gnu packages check)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages elf)
   #:use-module (gnu packages freedesktop)
+  #:use-module (gnu packages gawk)
   #:use-module (gnu packages gcc)
   #:use-module (gnu packages gl)
   #:use-module (gnu packages glib)
@@ -50,8 +41,14 @@
   #:use-module (gnu packages perl)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-xyz)
+  #:use-module (gnu packages python-web)
+  #:use-module (gnu packages qt)
+  #:use-module (gnu packages terminals)
   #:use-module (gnu packages video)
   #:use-module (gnu packages web)
+  #:use-module (gnu packages xdisorg)
+  #:use-module (gnu packages xml)
   #:use-module (gnu packages xorg)
   #:use-module (nongnu packages linux)
   #:use-module (ice-9 match)
@@ -61,231 +58,340 @@
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1))
 
-; Used for closed-source packages
-(define nvidia-version "470.86")
+(define nvidia-version "515.76")
 
-; Used for the open-source kernel module package
-(define nversion "515.76")
+(define computed-origin-method
+  (@@ (guix packages) computed-origin-method))
+
+;; Extract the driver installer and make it a new origin instance for reusing.
+(define (make-nvidia-source version installer)
+  (origin
+    (method computed-origin-method)
+    (file-name (string-append "nvidia-driver-" version "-checkout"))
+    (sha256 #f)
+    (uri
+     (delay
+       (with-imported-modules '((guix build utils))
+         #~(begin
+             (use-modules (guix build utils)
+                          (ice-9 ftw))
+             (set-path-environment-variable
+              "PATH" '("bin")
+              (list (canonicalize-path #+bash-minimal)
+                    (canonicalize-path #+coreutils)
+                    (canonicalize-path #+gawk)
+                    (canonicalize-path #+grep)
+                    (canonicalize-path #+tar)
+                    (canonicalize-path #+which)
+                    (canonicalize-path #+xz)))
+             (setenv "XZ_OPT" (string-join (%xz-parallel-args)))
+             (invoke "sh" #$installer "-x")
+             (copy-recursively
+              (car (scandir (canonicalize-path (getcwd))
+                            (lambda (file)
+                              (not (member file '("." ".."))))))
+              #$output)))))))
+
+(define nvidia-source
+  (let ((version nvidia-version))
+    (make-nvidia-source
+     version
+     (origin
+       (method url-fetch)
+       (uri (string-append
+             "https://us.download.nvidia.com/XFree86/Linux-x86_64/"
+             version "/NVIDIA-Linux-x86_64-" version ".run"))
+       (sha256
+        (base32 "0i5zyvlsjnfkpfqhw6pklp0ws8nndyiwxrg4pj04jpwnxf6a38n6"))))))
+
+(define-public gpustat
+  (package
+    (name "gpustat")
+    (version "1.0.0")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "gpustat" version))
+              (sha256
+               (base32
+                "1wg3yikkqdrcxp5xscyb9rxifgfwv7qh73xv4airab63b3w8y7jq"))))
+    (build-system python-build-system)
+    (arguments
+     '(#:tests? #f))
+    (propagated-inputs (list python-blessed python-nvidia-ml-py python-psutil
+                             python-six))
+    (native-inputs (list python-mock python-pytest python-pytest-runner))
+    (home-page "https://github.com/wookayin/gpustat")
+    (synopsis "Utility to monitor NVIDIA GPU status and usage")
+    (description
+     "This package provides an utility to monitor NVIDIA GPU status
+and usage.")
+    (license license-gnu:expat)))
+
+(define-public python-nvidia-ml-py
+  (package
+    (name "python-nvidia-ml-py")
+    (version "11.495.46")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "nvidia-ml-py" version))
+              (sha256
+               (base32
+                "09cnb7xasd7brby52j70y7fqsfm9n6gvgqf769v0cmj74ypy2s4g"))))
+    (build-system python-build-system)
+    (arguments
+     (list #:phases #~(modify-phases %standard-phases
+                        (add-after 'unpack 'fix-libnvidia
+                          (lambda _
+                            (substitute* "pynvml.py"
+                              (("libnvidia-ml.so.1")
+                               (string-append #$(this-package-input
+                                                 "nvidia-driver")
+                                              "/lib/libnvidia-ml.so.1"))))))))
+    (inputs (list nvidia-driver))
+    (home-page "https://forums.developer.nvidia.com")
+    (synopsis "Python Bindings for the NVIDIA Management Library")
+    (description "This package provides official Python Bindings for the NVIDIA
+Management Library")
+    (license license-gnu:bsd-3)))
+
+(define-public nvidia-htop
+  (package
+    (name "nvidia-htop")
+    (version "1.0.5")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "nvidia-htop" version))
+              (sha256
+               (base32
+                "0lv9cpccpkbg0d577irm1lp9rx6pacyk2pk9v41k9s9hyl4b7hvx"))))
+    (build-system python-build-system)
+    (arguments
+     (list #:phases #~(modify-phases %standard-phases
+                        (add-after 'unpack 'fix-libnvidia
+                          (lambda _
+                            (substitute* "nvidia-htop.py"
+                              (("nvidia-smi")
+                               (string-append #$(this-package-input
+                                                 "nvidia-driver")
+                                              "/bin/nvidia-smi"))))))))
+    (inputs (list nvidia-driver))
+    (propagated-inputs (list python-termcolor))
+    (home-page "https://github.com/peci1/nvidia-htop")
+    (synopsis "Tool to enrich the output of nvidia-smi")
+    (description "This package provides tool for enriching the output of
+nvidia-smi.")
+    (license license-gnu:bsd-3)))
+
+(define-public python-py3nvml
+  (package
+    (name "python-py3nvml")
+    (version "0.2.7")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "py3nvml" version))
+              (sha256
+               (base32
+                "0wxxky9amy38q7qjsdmmznk1kqdzwd680ps64i76cvlab421vvh9"))))
+    (build-system python-build-system)
+    (arguments
+     (list #:phases #~(modify-phases %standard-phases
+                        (add-after 'unpack 'fix-libnvidia
+                          (lambda _
+                            (substitute* "py3nvml/py3nvml.py"
+                              (("libnvidia-ml.so.1")
+                               (string-append #$(this-package-input
+                                                 "nvidia-driver")
+                                              "/lib/libnvidia-ml.so.1"))))))))
+    (propagated-inputs (list nvidia-driver python-xmltodict))
+    (home-page "https://github.com/fbcotter/py3nvml")
+    (synopsis "Unoffcial Python 3 Bindings for the NVIDIA Management Library")
+    (description "This package provides unofficial Python 3 Bindings for the
+NVIDIA Management Library")
+    (license license-gnu:bsd-3)))
 
 (define-public nvidia-driver
   (package
     (name "nvidia-driver")
     (version nvidia-version)
-    (source
-     (origin
-       (uri (format #f "http://us.download.nvidia.com/XFree86/Linux-x86_64/~a/~a.run"
-                    version
-                    (format #f "NVIDIA-Linux-x86_64-~a" version)))
-       (sha256 (base32 "0krwcxc0j19vjnk8sv6mx1lin2rm8hcfhc2hg266846jvcws1dsg"))
-       (method url-fetch)
-       (file-name (string-append "nvidia-driver-" version "-checkout"))))
-    (build-system linux-module-build-system)
+    (source nvidia-source)
+    (build-system copy-build-system)
     (arguments
-     (list #:linux linux-lts
-       #:tests? #f
-       #:phases
-       #~(modify-phases %standard-phases
-         (replace 'unpack
-           (lambda* (#:key inputs #:allow-other-keys #:rest r)
-             (let ((source (assoc-ref inputs "source")))
-               (invoke "sh" source "--extract-only")
-               (chdir #$(format #f "NVIDIA-Linux-x86_64-~a" version)))))
-         (replace 'build
-           (lambda*  (#:key inputs outputs #:allow-other-keys)
-             ;; We cannot use with-directory-excursion, because the install
-             ;; phase needs to be in the kernel folder. Otherwise no .ko
-             ;; would be installed.
-             (chdir "kernel")
-             ;; Patch Kbuild
-             (substitute* "Kbuild"
-               (("/bin/sh") (string-append #$bash-minimal "/bin/sh")))
-             (invoke "make"
-                     "-j"
-                     (string-append "SYSSRC="
-                                    (assoc-ref inputs "linux-module-builder")
-                                    "/lib/modules/build")
-                     "CC=gcc")))
-         (delete 'strip)
-         (add-after 'install 'install-copy
-           (lambda* (#:key inputs native-inputs outputs #:allow-other-keys)
-             (chdir "..")
-             (use-modules (ice-9 ftw)
-                          (ice-9 regex)
-                          (ice-9 textual-ports))
-             (let* ((libdir (string-append #$output "/lib"))
-                    (bindir (string-append #$output "/bin"))
-                    (etcdir (string-append #$output "/etc")))
-               ;; ------------------------------
-               ;; Copy .so files
-               (for-each
-                (lambda (file)
-                  (format #t "Copying '~a'...~%" file)
-                  (install-file file libdir))
-                (scandir "." (lambda (name)
-                               (string-contains name ".so"))))
+     (list #:modules '((guix build copy-build-system)
+                       (guix build utils)
+                       (ice-9 ftw)
+                       (ice-9 popen)
+                       (ice-9 rdelim)
+                       (ice-9 regex)
+                       (ice-9 textual-ports))
+           #:install-plan
+           #~`((,#$(match (or (%current-target-system) (%current-system))
+                     ("i686-linux" "32")
+                     ("x86_64-linux" ".")
+                     (_ "."))
+                "lib/" #:include-regexp ("^./[^/]+\\.so") #:exclude-regexp ("nvidia_drv\\.so" "libglxserver_nvidia\\.so\\..*"))
+               ("." "share/nvidia/" #:include-regexp ("nvidia-application-profiles.*"))
+               ("." "share/egl/egl_external_platform.d/" #:include-regexp (".*_nvidia_.*\\.json"))
+               ("90-nvidia.rules" "lib/udev/rules.d/")
+               ("nvidia-drm-outputclass.conf" "share/x11/xorg.conf.d/")
+               ("nvidia-dbus.conf" "share/dbus-1/system.d/")
+               ("nvidia-smi.1.gz" "share/man/man1/")
+               ("nvidia.icd" "etc/OpenCL/vendors/")
+               ("nvidia_drv.so" "lib/xorg/modules/drivers/")
+               ("nvidia_icd.json" "share/vulkan/icd.d/")
+               ("nvidia_layers.json" "share/vulkan/implicit_layer.d/")
+               (,(string-append "libglxserver_nvidia.so." #$version) "lib/xorg/modules/extensions/"))
+           #:phases
+           #~(modify-phases %standard-phases
+               (delete 'strip)
+               (add-after 'unpack 'create-misc-files
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   ;; Vulkan layer configuration
+                   (for-each (lambda (file)
+                               (substitute* file
+                                 (("lib(GLX|nvidia).*\\.so\\..*" all)
+                                  (string-append #$output "/lib/" all))))
+                             (scandir "." (lambda (name)
+                                            (string-contains name ".json"))))
 
-               (install-file "nvidia_drv.so" (string-append #$output "/lib/xorg/modules/drivers/"))
-               (install-file (string-append "libglxserver_nvidia.so."
-                                            #$(package-version nvidia-driver))
-                             (string-append #$output "/lib/xorg/modules/extensions/"))
+                   ;; OpenCL vendor ICD configuration
+                   (substitute* "nvidia.icd"
+                     ((".*" all) (string-append #$output "/lib/" all)))
 
-               ;; ICD Loader for OpenCL
-               (let ((file (string-append etcdir "/OpenCL/vendors/nvidia.icd")))
-                 (mkdir-p (string-append etcdir "/OpenCL/vendors/"))
-                 (call-with-output-file file
-                   (lambda (port)
-                     (display (string-append #$output "/lib/libnvidia-opencl.so.1") port)))
-                 (chmod file #o555))
+                   ;; Add udev rules for nvidia
+                   (let ((rules "90-nvidia.rules"))
+                     (call-with-output-file rules
+                       (lambda (port)
+                         (put-string port (format #f "~
+KERNEL==\"nvidia\", RUN+=\"@sh@ -c '@mknod@ -m 666 /dev/nvidiactl c $$(@grep@ nvidia-frontend /proc/devices | @cut@ -d \\  -f 1) 255'\"
+KERNEL==\"nvidia_modeset\", RUN+=\"@sh@ -c '@mknod@ -m 666 /dev/nvidia-modeset c $$(@grep@ nvidia-frontend /proc/devices | @cut@ -d \\  -f 1) 254'\"
+KERNEL==\"card*\", SUBSYSTEM==\"drm\", DRIVERS==\"nvidia\", RUN+=\"@sh@ -c '@mknod@ -m 666 /dev/nvidia0 c $$(@grep@ nvidia-frontend /proc/devices | @cut@ -d \\  -f 1) 0'\"
+KERNEL==\"nvidia_uvm\", RUN+=\"@sh@ -c '@mknod@ -m 666 /dev/nvidia-uvm c $$(@grep@ nvidia-uvm /proc/devices | @cut@ -d \\  -f 1) 0'\"
+KERNEL==\"nvidia_uvm\", RUN+=\"@sh@ -c '@mknod@ -m 666 /dev/nvidia-uvm-tools c $$(@grep@ nvidia-uvm /proc/devices | @cut@ -d \\  -f 1) 0'\"
+"))))
+                     (substitute* rules
+                       (("@\\<(sh|grep|mknod|cut)\\>@" all cmd)
+                        (search-input-file inputs (string-append "/bin/" cmd)))))))
+               (add-after 'install 'patch-elf
+                 (lambda _
+                   (let* ((ld.so (string-append #$(this-package-input "glibc")
+                                                #$(glibc-dynamic-linker)))
+                          (rpath (string-join
+                                  (list "$ORIGIN"
+                                        (string-append #$output "/lib")
+                                        (string-append #$gcc:lib "/lib")
+                                        (string-append #$gtk+-2 "/lib")
+                                        (string-append #$(this-package-input "atk") "/lib")
+                                        (string-append #$(this-package-input "cairo") "/lib")
+                                        (string-append #$(this-package-input "gdk-pixbuf") "/lib")
+                                        (string-append #$(this-package-input "glib") "/lib")
+                                        (string-append #$(this-package-input "glibc") "/lib")
+                                        (string-append #$(this-package-input "gtk+") "/lib")
+                                        (string-append #$(this-package-input "libdrm") "/lib")
+                                        (string-append #$(this-package-input "libx11") "/lib")
+                                        (string-append #$(this-package-input "libxext") "/lib")
+                                        (string-append #$(this-package-input "mesa") "/lib")
+                                        (string-append #$(this-package-input "pango") "/lib")
+                                        (string-append #$(this-package-input "wayland") "/lib"))
+                                  ":")))
+                     (define (patch-elf file)
+                       (format #t "Patching ~a ..." file)
+                       (unless (string-contains file ".so")
+                         (invoke "patchelf" "--set-interpreter" ld.so file))
+                       (invoke "patchelf" "--set-rpath" rpath file)
+                       (display " done\n"))
+                     (for-each (lambda (file)
+                                 (when (elf-file? file)
+                                   (patch-elf file)))
+                               (append (find-files #$output  ".*\\.so")
+                                       (find-files (string-append #$output "/bin")))))))
+               (add-before 'patch-elf 'install-nvidia-smi
+                 (lambda _
+                   (if (string-match "x86_64-linux"
+                        (or #$(%current-target-system) #$(%current-system)))
+                     (install-file "nvidia-smi" (string-append #$output "/bin")))))
+               (add-after 'patch-elf 'create-short-name-symlinks
+                 (lambda _
+                   (define (get-soname file)
+                     (when elf-file? file
+                           (let* ((cmd (string-append "patchelf --print-soname " file))
+                                  (port (open-input-pipe cmd))
+                                  (soname (read-line port)))
+                             (close-pipe port)
+                             soname)))
 
-               ;; Add udev rules for nvidia
-               (let ((rulesdir (string-append #$output "/lib/udev/rules.d/"))
-                     (rules    (string-append #$output "/lib/udev/rules.d/90-nvidia.rules"))
-                     (sh       (string-append #$bash-minimal "/bin/sh"))
-                     (mknod    (string-append #$coreutils "/bin/mknod"))
-                     (cut     (string-append #$coreutils "/bin/cut"))
-                     (grep     (string-append #$grep "/bin/grep")))
-                 (mkdir-p rulesdir)
-                 (call-with-output-file rules
-                   (lambda (port)
-                     (put-string port
-                                 (string-append
-                                  "KERNEL==\"nvidia\", "
-                                  "RUN+=\"" sh " -c '" mknod " -m 666 /dev/nvidiactl c $$(" grep " nvidia-frontend /proc/devices | " cut " -d \\  -f 1) 255'\"" "\n"
-                                  "KERNEL==\"nvidia_modeset\", "
-                                  "RUN+=\"" sh " -c '" mknod " -m 666 /dev/nvidia-modeset c $$(" grep " nvidia-frontend /proc/devices | " cut " -d \\  -f 1) 254'\"" "\n"
-                                  "KERNEL==\"card*\", SUBSYSTEM==\"drm\", DRIVERS==\"nvidia\", "
-                                  "RUN+=\"" sh " -c '" mknod " -m 666 /dev/nvidia0 c $$(" grep " nvidia-frontend /proc/devices | " cut " -d \\  -f 1) 0'\"" "\n"
-                                  "KERNEL==\"nvidia_uvm\", "
-                                  "RUN+=\"" sh " -c '" mknod " -m 666 /dev/nvidia-uvm c $$(" grep " nvidia-uvm /proc/devices | " cut " -d \\  -f 1) 0'\"" "\n"
-                                  "KERNEL==\"nvidia_uvm\", "
-                                  "RUN+=\"" sh " -c '" mknod " -m 666 /dev/nvidia-uvm-tools c $$(" grep " nvidia-uvm /proc/devices | " cut " -d \\  -f 1) 0'\"" "\n" )))))
-
-               ;; ------------------------------
-               ;; Add a file to load nvidia drivers
-               (mkdir-p bindir)
-               (let ((file (string-append bindir "/nvidia-insmod"))
-                     (moddir (string-append "/lib/modules/" (utsname:release (uname)) "-gnu/extra")))
-                 (call-with-output-file file
-                   (lambda (port)
-                     (put-string port (string-append "#!" (assoc-ref inputs "bash-minimal") "/bin/sh" "\n"
-                                                     "modprobe ipmi_devintf"                   "\n"
-                                                     "insmod " #$output moddir "/nvidia.ko"         "\n"
-                                                     "insmod " #$output moddir "/nvidia-modeset.ko" "\n"
-                                                     "insmod " #$output moddir "/nvidia-uvm.ko"     "\n"
-                                                     "insmod " #$output moddir "/nvidia-drm.ko"     "\n"))))
-                 (chmod file #o555))
-               (let ((file (string-append bindir "/nvidia-rmmod")))
-                 (call-with-output-file file
-                   (lambda (port)
-                     (put-string port (string-append "#!" #$bash-minimal "/bin/sh" "\n"
-                                                     "rmmod " "nvidia-drm"     "\n"
-                                                     "rmmod " "nvidia-uvm"     "\n"
-                                                     "rmmod " "nvidia-modeset" "\n"
-                                                     "rmmod " "nvidia"         "\n"
-                                                     "rmmod " "ipmi_devintf"   "\n"))))
-                 (chmod file #o555))
-
-               ;; ------------------------------
-               ;;  nvidia-smi
-
-               (install-file "nvidia-smi" bindir)
-
-               ;; ------------------------------
-               ;; patchelf
-               (let* ((ld.so (string-append #$glibc #$(glibc-dynamic-linker)))
-
-                      (rpath (string-join
-                              (list "$ORIGIN"
-                                    (string-append #$output "/lib")
-                                    (string-append #$glibc "/lib")
-                                    (string-append #$libx11 "/lib")
-                                    (string-append #$libxext "/lib")
-                                    (string-append #$pango "/lib")
-                                    (string-append #$gtk+ "/lib")
-                                    (string-append #$gtk+-2 "/lib")
-                                    (string-append #$atk "/lib")
-                                    (string-append #$glib "/lib")
-                                    (string-append #$cairo "/lib")
-                                    (string-append #$gdk-pixbuf "/lib")
-                                    (string-append #$wayland "/lib")
-                                    (string-append #$gcc:lib "/lib"))
-                              ":")))
-                 (define (patch-elf file)
-                   (format #t "Patching ~a ...~%" file)
-                   (unless (string-contains file ".so")
-                     (invoke "patchelf" "--set-interpreter" ld.so file))
-                   (invoke "patchelf" "--set-rpath" rpath file))
-                 (for-each (lambda (file)
-                             (when (elf-file? file)
-                               (patch-elf file)))
-                           (find-files #$output  ".*\\.so"))
-                 (patch-elf (string-append bindir "/" "nvidia-smi")))
-
-               ;; ------------------------------
-               ;; Create short name symbolic links
-               (for-each (lambda (file)
-                           (let* ((short (regexp-substitute
-                                          #f
-                                          (string-match "([^/]*\\.so).*" file)
-                                          1))
-                                  (major (cond
-                                          ((or (string=? short "libGLX.so")
-                                               (string=? short "libGLX_nvidia.so")
-                                               (string=? short "libEGL_nvidia.so")) "0")
-                                          ((string=? short "libGLESv2.so") "2")
-                                          (else "1")))
-                                  (mid (string-append short "." major))
-                                  (short-file (string-append libdir "/" short))
-                                  (mid-file (string-append libdir "/" mid)))
-                             ;; FIXME the same name, print out warning at least
-                             ;; [X] libEGL.so.1.1.0
-                             ;; [ ] libEGL.so.435.21
-                             (when (not (file-exists? short-file))
-                               (format #t "Linking ~a to ~a ...~%" short file)
-                               (symlink (basename file) short-file))
-                             (when (not (file-exists? mid-file))
-                               (format #t "Linking ~a to ~a ...~%" mid file)
-                               (symlink (basename file) mid-file))))
-                         (find-files libdir "\\.so\\."))
-               (symlink (string-append "libglxserver_nvidia.so."
-                                       #$(package-version nvidia-driver))
-                        (string-append #$output "/lib/xorg/modules/extensions/" "libglxserver_nvidia.so"))))))))
-    (supported-systems '("x86_64-linux"))
-    (native-inputs
-     (list
-       patchelf
-       perl
-       python-2
-       which
-       xz))
+                   (for-each
+                    (lambda (lib)
+                      (let ((lib-soname (get-soname lib)))
+                        (when (string? lib-soname)
+                          (let* ((soname (string-append
+                                          (dirname lib) "/" lib-soname))
+                                 (base (string-append
+                                        (regexp-substitute
+                                         #f (string-match "(.*)\\.so.*" soname) 1)
+                                        ".so"))
+                                 (source (basename lib)))
+                            (for-each
+                             (lambda (target)
+                               (unless (file-exists? target)
+                                 (format #t "Symlinking ~a -> ~a..."
+                                         target source)
+                                 (symlink source target)
+                                 (display " done\n")))
+                             (list soname base))))))
+                    (find-files #$output "\\.so"))
+                   (symlink (string-append "libglxserver_nvidia.so." #$version)
+                            (string-append #$output "/lib/xorg/modules/extensions/" "libglxserver_nvidia.so"))
+                   (symlink (string-append "libnvidia-allocator.so." #$version)
+                            (string-append #$output "/lib/nvidia-drm_gbm.so" )))))))
+    (supported-systems '("i686-linux" "x86_64-linux"))
+    (native-inputs (list patchelf))
     (inputs
-     (list
-       atk
-       bash-minimal
-       cairo
-       coreutils
-       `(,gcc "lib")
-       gdk-pixbuf
-       glib
-       grep
-       gtk+
-       gtk+-2
-       kmod
-       glibc
-       libx11
-       libxext
-       linux-lts
-       pango
-       wayland))
+     (list `(,gcc "lib")
+           atk
+           bash-minimal
+           cairo
+           coreutils
+           gdk-pixbuf
+           glib
+           glibc
+           grep
+           gtk+
+           gtk+-2
+           kmod
+           libdrm
+           libx11
+           libxext
+           linux-lts
+           mesa
+           pango
+           wayland))
     (home-page "https://www.nvidia.com")
-    (synopsis "Proprietary Nvidia driver")
-    (description "This is the evil Nvidia driver.  Don't forget to add
-nvidia-driver to the udev-rules in your config.scm:
-@code{(simple-service 'custom-udev-rules udev-service-type (list nvidia-driver))}
-Further xorg should be configured by adding:
-@code{(modules (cons* nvidia-driver %default-xorg-modules))
-(drivers '(\"nvidia\"))} to @code{xorg-configuration}.")
-    (license (license:nonfree (format #f "file:///share/doc/nvidia-driver-~a/LICENSE" version)))))
+    (synopsis "Proprietary NVIDIA driver")
+    (description
+     "This is the evil NVIDIA driver.  Don't forget to add @code{service
+nvidia-service-type} to your @file{config.scm}.  Further xorg should be
+configured by adding: @code{(modules (cons* nvidia-driver
+%default-xorg-modules)) (drivers '(\"nvidia\"))} to @code{xorg-configuration}.
+")
+    (license
+     (license:nonfree
+      (format #f "file:///share/doc/nvidia-driver-~a/LICENSE" version)))))
+
+(define-public nvidia-firmware
+  (let ((base nvidia-driver))
+    (package
+      (inherit base)
+      (name "nvidia-firmware")
+      (arguments
+       (list #:install-plan
+             #~'(("firmware" #$(string-append
+                                "lib/firmware/nvidia/" (package-version base))))
+             #:phases
+             #~(modify-phases %standard-phases
+                 (delete 'strip))))
+      (inputs '())
+      (native-inputs '())
+      (properties `((hidden? . #t))))))
 
 (define-public nvidia-exec
   (package
@@ -369,173 +475,67 @@ simultaneous NVML calls from multiple threads.")
     (license (license:nonfree "file://COPYRIGHT.txt"))))
 
 (define-public nvidia-libs
-  (package
-    (name "nvidia-libs")
-    (version nvidia-version)
-    (source
-     (origin
-       (uri (format #f "http://us.download.nvidia.com/XFree86/Linux-x86_64/~a/~a.run"
-                    version
-                    (format #f "NVIDIA-Linux-x86_64-~a" version)))
-       (sha256 (base32 "0krwcxc0j19vjnk8sv6mx1lin2rm8hcfhc2hg266846jvcws1dsg"))
-       (method url-fetch)
-       (file-name (string-append "nvidia-driver-" version "-checkout"))))
-    (build-system copy-build-system)
-    (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (replace 'unpack
-           (lambda* (#:key inputs #:allow-other-keys #:rest r)
-             (let ((source (assoc-ref inputs "source")))
-               (invoke "sh" source "--extract-only")
-               (chdir ,(format #f "NVIDIA-Linux-x86_64-~a" version))
-               #t)))
-         (delete 'build)
-         (delete 'check)
-         (add-after 'install 'patch-symlink
-             (lambda* (#:key inputs native-inputs outputs #:allow-other-keys)
-             (use-modules (ice-9 ftw)
-                          (ice-9 regex)
-                          (ice-9 textual-ports))
-             (let* ((out (assoc-ref outputs "out"))
-                    (libdir (string-append out "/lib"))
-                    (bindir (string-append out "/bin"))
-                    (etcdir (string-append out "/etc")))
-               ;; ------------------------------
-               ;; patchelf
-               (let* ((libc (assoc-ref inputs "libc"))
-                      (ld.so (string-append libc ,(glibc-dynamic-linker)))
-
-                      (out (assoc-ref outputs "out"))
-                      (rpath (string-join
-                              (list "$ORIGIN"
-                                    (string-append out "/lib")
-                                    (string-append libc "/lib")
-                                    (string-append (assoc-ref inputs "atk") "/lib")
-                                    (string-append (assoc-ref inputs "cairo") "/lib")
-                                    (string-append (assoc-ref inputs "gcc:lib") "/lib")
-                                    (string-append (assoc-ref inputs "gdk-pixbuf") "/lib")
-                                    (string-append (assoc-ref inputs "glib") "/lib")
-                                    (string-append (assoc-ref inputs "gtk+") "/lib")
-                                    (string-append (assoc-ref inputs "gtk2") "/lib")
-                                    (string-append (assoc-ref inputs "libx11") "/lib")
-                                    (string-append (assoc-ref inputs "libxext") "/lib")
-                                    (string-append (assoc-ref inputs "pango") "/lib")
-                                    (string-append (assoc-ref inputs "wayland") "/lib"))
-                              ":")))
-                 (define (patch-elf file)
-                   (format #t "Patching ~a ...~%" file)
-                   (unless (string-contains file ".so")
-                     (invoke "patchelf" "--set-interpreter" ld.so file))
-                   (invoke "patchelf" "--set-rpath" rpath file))
-                 (for-each (lambda (file)
-                             (when (elf-file? file)
-                               (patch-elf file)))
-                           (find-files out  ".*\\.so")))
-
-               ;; ------------------------------
-               ;; Create short name symbolic links
-               (for-each (lambda (file)
-                           (let* ((short (regexp-substitute
-                                          #f
-
-                                          (string-match "([^/]*\\.so).*" file)
-                                          1))
-                                  (major (cond
-                                          ((or (string=? short "libGLX.so")
-                                               (string=? short "libGLX_nvidia.so")
-                                               (string=? short "libEGL_nvidia.so")) "0")
-                                          ((string=? short "libGLESv2.so") "2")
-                                          (else "1")))
-                                  (mid (string-append short "." major))
-                                  (short-file (string-append libdir "/" short))
-                                  (mid-file (string-append libdir "/" mid)))
-                             ;; FIXME the same name, print out warning at least
-                             ;; [X] libEGL.so.1.1.0
-                             ;; [ ] libEGL.so.435.21
-                             (when (not (file-exists? short-file))
-                               (format #t "Linking ~a to ~a ...~%" short file)
-                               (symlink (basename file) short-file))
-                             (when (not (file-exists? mid-file))
-                               (format #t "Linking ~a to ~a ...~%" mid file)
-                               (symlink (basename file) mid-file))))
-                         (find-files libdir "\\.so\\."))
-           #t))))
-       #:install-plan
-        ,@(match (%current-system)
-           ("x86_64-linux" '(`(("." "lib" #:include-regexp ("^./[^/]+\\.so")))))
-           ("i686-linux" '(`(("32" "lib" #:include-regexp ("^./[^/]+\\.so")))))
-           (_ '()))))
-    (supported-systems '("i686-linux" "x86_64-linux"))
-    (native-inputs
-     `(("patchelf" ,patchelf)
-       ("perl" ,perl)
-       ("python" ,python-2)
-       ("which" ,which)
-       ("xz" ,xz)))
-    (inputs
-     `(("atk" ,atk)
-       ("cairo" ,cairo)
-       ("gcc:lib" ,gcc "lib")
-       ("gdk-pixbuf" ,gdk-pixbuf)
-       ("glib" ,glib)
-       ("gtk+" ,gtk+)
-       ("gtk2" ,gtk+-2)
-       ("libc" ,glibc)
-       ("libx11" ,libx11)
-       ("libxext" ,libxext)
-       ("wayland" ,wayland)))
-    (home-page "https://www.nvidia.com")
-    (synopsis "Libraries of the proprietary Nvidia driver")
-    (description "These are the libraries of the evil Nvidia driver compatible
-with the ones usually provided by Mesa.  To use these libraries with
-packages that have been compiled with a mesa output, take a look at the nvda
-package.")
-    (license (license:nonfree (format #f "file:///share/doc/nvidia-driver-~a/LICENSE" version)))))
+  (deprecated-package "nvidia-libs" nvidia-driver))
 
 (define-public nvidia-module
   (package
     (name "nvidia-module")
-    (version nversion)
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://github.com/NVIDIA/open-gpu-kernel-modules")
-                    (commit nversion)))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "1mkibm0i943ljcy921i63jzc0db6r4pm1ycmwbka9kddcviyb3gk"))))
+    (version nvidia-version)
+    (source nvidia-source)
     (build-system linux-module-build-system)
     (arguments
-     (list #:linux linux
-           #:source-directory "kernel-open"
-           #:tests?  #f
+     (list #:linux linux-lts
+           #:source-directory "kernel"
+           #:tests? #f
            #:make-flags
-           #~(list (string-append "CC=" #$(cc-for-target))
-                   (string-append "SYSSRC=" (assoc-ref %build-inputs
-                                             "linux-module-builder")
-                                  "/lib/modules/build"))
+           #~(list (string-append "CC=" #$(cc-for-target)))
            #:phases
            #~(modify-phases %standard-phases
-               (add-after 'unpack 'fixpath
-                 (lambda* (#:key inputs outputs #:allow-other-keys)
-                   (substitute* "kernel-open/Kbuild"
-                     (("/bin/sh") (string-append #$bash-minimal "/bin/sh")))))
+               (delete 'strip)
+               (add-before 'configure 'fixpath
+                 (lambda* (#:key (source-directory ".") #:allow-other-keys)
+                   (substitute* (string-append source-directory "/Kbuild")
+                     (("/bin/sh") (which "sh")))))
                (replace 'build
-                 (lambda* (#:key make-flags outputs #:allow-other-keys)
-                   (apply invoke
-                          `("make" "-j"
-                            ,@make-flags "modules")))))))
-    (inputs (list bash-minimal))
-    (home-page "https://github.com/NVIDIA/open-gpu-kernel-modules")
-    (synopsis "Nvidia kernel module")
+                 (lambda* (#:key (make-flags '()) (parallel-build? #t)
+                           (source-directory ".")
+                           inputs
+                           #:allow-other-keys)
+                   (apply invoke "make" "-C" (canonicalize-path source-directory)
+                          (string-append "SYSSRC=" (search-input-directory
+                                                    inputs "/lib/modules/build"))
+                          `(,@(if parallel-build?
+                                  `("-j" ,(number->string
+                                           (parallel-job-count)))
+                                  '())
+                            ,@make-flags)))))))
+    (home-page "https://www.nvidia.com")
+    (synopsis "Proprietary NVIDIA kernel modules")
     (description
-     "This package provides Nvidia open-gpu-kernel-modules.  However,
-they are only for the latest GPU architectures Turing and Ampere.  Also they
-still require firmware file @code{gsp.bin} to be loaded as well as closed
-source userspace tools from the corresponding driver release.")
-    (license license-gnu:gpl2)))
+     "This package provides the evil NVIDIA proprietary kernel modules.")
+    (license
+     (license:nonfree
+      (format #f "file:///share/doc/nvidia-driver-~a/LICENSE" version)))))
+
+(define-public nvidia-module-open
+  (let ((base nvidia-module))
+    (package/inherit base
+      (name "nvidia-module-open")
+      (arguments
+       (substitute-keyword-arguments (package-arguments base)
+         ;; NOTE: Kernels compiled with CONFIG_LTO_CLANG_THIN would cause an
+         ;; error here.  See also:
+         ;; <https://github.com/NVIDIA/open-gpu-kernel-modules/issues/214>
+         ;; <https://github.com/llvm/llvm-project/issues/55820>
+         ((#:source-directory _) "kernel-open")))
+      (home-page "https://github.com/NVIDIA/open-gpu-kernel-modules")
+      (synopsis "NVIDIA kernel module")
+      (description
+       "This package provides NVIDIA open-gpu-kernel-modules.  However, they
+are only for the latest GPU architectures Turing and Ampere.  Also they still
+require firmware file @code{gsp.bin} to be loaded as well as closed source
+userspace tools from the corresponding driver release.")
+      (license license-gnu:gpl2))))
 
 (define-public nvidia-settings
   (package
@@ -549,7 +549,7 @@ source userspace tools from the corresponding driver release.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1lnj5hwmfkzs664fxlhljqy323394s1i7qzlpsjyrpm07sa93bky"))))
+                "1hplc42115c06cc555cjmw3c9371qn7ibwjpqjybcf6ixfd6lryq"))))
     (build-system gnu-build-system)
     (arguments
      (list #:tests? #f ;no test suite
@@ -585,34 +585,79 @@ configuration, creating application profiles, gpu monitoring and more.")
     (home-page "https://github.com/NVIDIA/nvidia-settings")
     (license license-gnu:gpl2)))
 
+(define-public nvidia-system-monitor
+  (package
+    (name "nvidia-system-monitor")
+    (version "1.5")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/congard/nvidia-system-monitor-qt")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0aghdqljvjmc02g9jpc7sb3yhha738ywny51riska56hkxd3jg2l"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:tests? #f
+           #:phases #~(modify-phases %standard-phases
+                        (add-after 'unpack 'fix-nvidia-smi
+                          (lambda _
+                            (let ((nvidia-smi (string-append #$(this-package-input
+                                                                "nvidia-driver")
+                                               "/bin/nvidia-smi")))
+                              (substitute* "src/core/InfoProvider.cpp"
+                                (("nvidia-smi")
+                                 nvidia-smi))
+                              (substitute* "src/main.cpp"
+                                (("which nvidia-smi")
+                                 (string-append "which " nvidia-smi))
+                                (("exec..nvidia-smi")
+                                 (string-append "exec(\"" nvidia-smi))))))
+                        (replace 'install
+                          (lambda* (#:key outputs #:allow-other-keys)
+                            (let ((bin (string-append #$output "/bin")))
+                              (mkdir-p bin)
+                              (install-file "qnvsm" bin)))))))
+    (inputs (list qtbase-5 qtdeclarative-5 nvidia-driver))
+    (home-page "https://github.com/congard/nvidia-system-monitor-qt")
+    (synopsis "Task manager for Nvidia graphics cards")
+    (description
+     "This package provides a task manager for Nvidia graphics cards.")
+    (license license-gnu:expat)))
+
 ;; nvda is used as a name because it has the same length as mesa which is
 ;; required for grafting
 (define-public nvda
   (package
-    (inherit nvidia-libs)
+    (inherit nvidia-driver)
     (name "nvda")
     (source #f)
     (build-system trivial-build-system)
     (arguments
      (list #:modules '((guix build union))
-       #:builder #~(begin
-                   (use-modules (guix build union)
-                                (srfi srfi-1)
-                                (ice-9 regex))
-                      (union-build (assoc-ref %outputs "out")
-                                   (list #$mesa #$nvidia-libs)
-                                   #:resolve-collision (lambda (files) (let ((file
-                                                                         (if (string-match "nvidia-libs" (first files))
-                                                                             (first files)
-                                                                             (last files))))
-                                                                         (format #t "chosen ~a ~%" file)
-                                                                         file))))))
-    (description "These are the libraries of the evil Nvidia driver,
-packaged in such a way that you can use the transformation option
-@code{--with-graft=mesa=nvda} to use the nvidia driver with a package that requires mesa.")
-    (inputs
-     (list mesa
-           nvidia-libs))
+           #:builder
+           #~(begin
+               (use-modules (guix build union)
+                            (srfi srfi-1)
+                            (ice-9 regex))
+               (union-build #$output
+                            (list #$(this-package-input "mesa")
+                                  #$(this-package-input "nvidia-driver"))
+                            #:resolve-collision
+                            (lambda (files)
+                              (let ((file (if (string-match "nvidia-driver"
+                                                            (first files))
+                                              (first files)
+                                              (last files))))
+                                (format #t "chosen ~a ~%" file)
+                                file))))))
+    (description
+     "These are the libraries of the evil NVIDIA driver, packaged in such a
+way that you can use the transformation option @code{--with-graft=mesa=nvda}
+to use the NVIDIA driver with a package that requires mesa.")
+    (inputs (list mesa nvidia-driver))
     (outputs '("out"))))
 
 (define mesa/fake

@@ -1,17 +1,5 @@
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2022 Guillaume Le Vaillant <glv@posteo.net>
-;;;
-;;; This program is free software: you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation, either version 3 of the License, or
-;;; (at your option) any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 (define-module (nongnu packages radio)
   #:use-module (gnu packages gcc)
@@ -97,25 +85,27 @@ package.  E.g.: @code{(udev-rules-service 'sdrplay sdrplay)}")
                                      "/license.txt")))))
 
 (define-public soapysdrplay3
-  (package
-    (name "soapysdrplay3")
-    (version "0.4.0")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/pothosware/SoapySDRPlay3")
-             (commit (string-append "soapy-sdrplay3-" version))))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32 "0kp5gz03c29kxclaqijpyqknaijlbldrhy04mn98vnli9g1h1isq"))))
-    (build-system cmake-build-system)
-    (inputs
-     (list sdrplay soapysdr))
-    (arguments
-     `(#:tests? #f))  ; No test suite
-    (home-page "https://github.com/pothosware/SoapySDRPlay3/wiki")
-    (synopsis "SoapySDR SDRplay module")
-    (description "This package provides SDRplay devices support to the
+  (let ((commit "9e5c80c45454db56b8b10bb997369f37e750631b")
+        (revision "1"))
+    (package
+      (name "soapysdrplay3")
+      (version (git-version "0.4.1" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/pothosware/SoapySDRPlay3")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1sl3i1id0fily7qfm0yihxsaqy4f4gr85vl5ip05azhhbrnmnayx"))))
+      (build-system cmake-build-system)
+      (inputs
+       (list sdrplay soapysdr))
+      (arguments
+       `(#:tests? #f))  ; No test suite
+      (home-page "https://github.com/pothosware/SoapySDRPlay3/wiki")
+      (synopsis "SoapySDR SDRplay module")
+      (description "This package provides SDRplay devices support to the
 SoapySDR library.")
-    (license expat)))
+      (license expat))))

@@ -1,34 +1,21 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2022 Jelle Licht <jlicht@fsfe.org>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (nongnu packages video)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages video)
   #:use-module (guix build utils)
   #:use-module (guix build-system cmake)
+  #:use-module (guix gexp)
   #:use-module (guix git-download)
   #:use-module (guix packages)
+  #:use-module (guix utils)
   #:use-module ((guix licenses) #:prefix license:))
 
 (define-public gmmlib
   (package
     (name "gmmlib")
-    (version "22.1.3")
+    (version "22.3.9")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -37,7 +24,7 @@
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "10gk8bi8xa2bgiqmjbphb9acvbmvgwv9kg0z75cfxazlsx5k7jb1"))))
+                "0m88lxlqqs5wdk4icf2ahbigr0q87j1c0damq7q0r55h72pf6zyv"))))
     (build-system cmake-build-system)
     (arguments
      ;; Tests are run as part of the normal build step
@@ -53,7 +40,7 @@ for VAAPI.")
 (define-public intel-media-driver
   (package
     (name "intel-media-driver")
-    (version "22.2.2")
+    (version "23.3.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -62,16 +49,16 @@ for VAAPI.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1wvx3kvsdq7n5khl0pf7hf1ks4lwqnyjdq8sbjhd7irs3v3prj4j"))))
+                "1zh6zgfyp14zlnd6jvhqz9q5rlyk7cb3nam791slh0h7r5f0iimm"))))
     (build-system cmake-build-system)
     (inputs (list libva gmmlib))
     (native-inputs (list pkg-config))
     (arguments
-     '(#:tests? #f ;Tests are run as part of the normal build step
-       #:configure-flags
-       (list "-DENABLE_NONFREE_KERNELS=OFF"
-             (string-append "-DLIBVA_DRIVERS_PATH="
-                            (assoc-ref %outputs "out") "/lib/dri"))))
+     (list #:tests? #f ;Tests are run as part of the normal build step
+           #:configure-flags
+           #~(list "-DENABLE_NONFREE_KERNELS=OFF"
+                   (string-append "-DLIBVA_DRIVERS_PATH="
+                                  #$output "/lib/dri"))))
     ;; XXX Because of <https://issues.guix.gnu.org/issue/22138>, we need to add
     ;; this to all VA-API back ends instead of once to libva.
     (native-search-paths
@@ -86,3 +73,22 @@ for VAAPI.")
 accelerated decoding, encoding, and video post processing for the GEN based
 graphics hardware.")
     (license (list license:expat license:bsd-3))))
+
+(define-public intel-media-driver/nonfree
+  (package
+    (inherit intel-media-driver)
+    (name "intel-media-driver-nonfree")
+    (arguments
+     (substitute-keyword-arguments (package-arguments intel-media-driver)
+       ((#:configure-flags flags #~'())
+        #~(cons "-DENABLE_NONFREE_KERNELS=ON"
+                (delete "-DENABLE_NONFREE_KERNELS=OFF" #$flags)))))
+    (synopsis
+       (string-append
+        (package-synopsis intel-media-driver)
+        " with nonfree kernels"))
+    (description
+       (string-append
+        (package-description intel-media-driver)
+        "  This build of intel-media-driver includes nonfree blobs to fully enable the
+video decode capabilities of supported Intel GPUs."))))

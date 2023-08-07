@@ -173,18 +173,19 @@ is exactly equivalent to:
                    rest)))
 #+END_SRC
 
-** Broadcom Wireless
+** Broadcom
+
+*** Wireless
 
 Some Broadcom wireless hardware requires a proprietary kernel module in
 addition to firmware. To use such hardware you will also need to add a service
-to load that module on boot, blacklist conflicting kernel modules, and while not
-required, it is recommended to stay with Linux LTS releases:
+to load that module on boot and blacklist conflicting kernel modules:
 
 #+BEGIN_SRC scheme
   (use-modules (nongnu packages linux))
 
   (operating-system
-    (kernel linux-lts)
+    (kernel linux)
     ;; Blacklist conflicting kernel modules.
     (kernel-arguments '("modprobe.blacklist=b43,b43legacy,ssb,bcm43xx,brcm80211,brcmfmac,brcmsmac,bcma"))
     (kernel-loadable-modules (list broadcom-sta))
@@ -193,6 +194,29 @@ required, it is recommended to stay with Linux LTS releases:
     ...)
 #+END_SRC
 
+*** Webcam
+
+Like Broadcom wireless hardware, the Broadcom 1570 PCIe webcam (better known as
+FacetimeHD and found in recent Macbooks) also requires a kernel module,
+firmware, and blacklisting of conflicting modules:
+
+#+BEGIN_SRC scheme
+  (use-modules (nongnu packages linux))
+  (use-modules (nongnu packages firmware))
+
+  (operating-system
+    (kernel-arguments '("modprobe.blacklist=bdc_pci"))
+    (kernel-loadable-modules (list facetimehd))
+    (firmware (cons* facetimehd-firmware
+                     facetimehd-calibration ; Optional but make the colors look better.
+                     %base-firmware))
+    (services
+     (cons* (simple-service 'facetimehd
+                            kernel-module-loader-service-type
+                            '("facetimehd"))
+            ...))
+    ...)
+#+END_SRC
 ** Substitutes for nonguix
 
 A Nonguix substitute server is available at [[https://substitutes.nonguix.org]].

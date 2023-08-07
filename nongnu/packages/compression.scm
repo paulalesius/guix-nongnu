@@ -1,20 +1,5 @@
-;;; GNU Guix --- Functional package management for GNU
+;;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;; Copyright © 2019 Pierre Neidhardt <mail@ambrevar.xyz>
-;;;
-;;; This file is not part of GNU Guix.
-;;;
-;;; GNU Guix is free software; you can redistribute it and/or modify it
-;;; under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 3 of the License, or (at
-;;; your option) any later version.
-;;;
-;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (nongnu packages compression)
   #:use-module (guix packages)
@@ -25,14 +10,14 @@
 (define-public unrar
   (package
     (name "unrar")
-    (version "6.0.2")
+    (version "6.2.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://www.rarlab.com/rar/unrarsrc-"
                                   version ".tar.gz"))
               (sha256
                (base32
-                "1lzdsfb4d00silyk04lkvaklmxaiyqksyxx4h1krg77q6f1iigw1"))))
+                "1mbw20lh300r541dz4m84rvq7b542mnb70yc29afrjj6waknqza7"))))
     (build-system gnu-build-system)
     (arguments
      '(#:tests? #f                      ; No tests.
