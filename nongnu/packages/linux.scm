@@ -105,9 +105,6 @@ on hardware which requires nonfree software to function."))))
 (define-public linux-6.4
   (corrupt-linux linux-libre-6.4))
 
-(define-public linux-6.3
-  (corrupt-linux linux-libre-6.3))
-
 (define-public linux-6.1
   (corrupt-linux linux-libre-6.1))
 
@@ -126,7 +123,7 @@ on hardware which requires nonfree software to function."))))
 (define-public linux-4.14
   (corrupt-linux linux-libre-4.14))
 
-(define-public linux linux-6.3)
+(define-public linux linux-6.4)
 ;; linux-lts points to the *newest* released long-term support version.
 (define-public linux-lts linux-6.1)
 
@@ -1072,7 +1069,7 @@ driver:
 (define-public intel-microcode
   (package
     (name "intel-microcode")
-    (version "20230613")
+    (version "20230808")
     (source
      (origin
        (method git-fetch)
@@ -1083,7 +1080,7 @@ driver:
              (commit (string-append "microcode-" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1clwzzivs6w8d35dpfv6ardi2gnhpsk1sr31dw7vq227yv0pvzml"))))
+        (base32 "1n0w6q46xag7a9iddl3v1gh1rzv9h6kiyy739ac6vg3v8lazh9n7"))))
     (build-system copy-build-system)
     (arguments
      (list #:install-plan
