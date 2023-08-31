@@ -58,7 +58,6 @@
   #:use-module (gnu packages m4)
   #:use-module (gnu packages node)
   #:use-module (gnu packages nss)
-  #:use-module (gnu packages pciutils)
   #:use-module (gnu packages perl)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages pulseaudio)
@@ -68,7 +67,6 @@
   #:use-module (gnu packages sqlite)
   #:use-module (gnu packages video)
   #:use-module (nongnu packages wasm)
-  #:use-module (nongnu packages video)
   #:use-module (gnu packages xdisorg)
   #:use-module (gnu packages xorg))
 
@@ -441,8 +439,6 @@
         nspr-4.32
         ;; nss
         pango
-        pciutils
-        intel-media-driver/nonfree
         pipewire
         pixman
         pulseaudio
