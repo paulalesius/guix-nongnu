@@ -36,7 +36,7 @@
 (define-public element-desktop
   (package
     (name "element-desktop")
-    (version "1.11.36")
+    (version "1.11.41")
     (source
      (origin
        (method url-fetch)
@@ -45,7 +45,7 @@
          "https://packages.riot.im/debian/pool/main/e/" name "/" name "_" version
          "_amd64.deb"))
        (sha256
-        (base32 "183ras16gk3jpfq664mbb5qk141rs5zics9d28w99p0m536rqkja"))))
+        (base32 "1m07b1ykmxly16irca171z4f718as7hqsccp1q7qrqj9b5lkmv64"))))
     (supported-systems '("x86_64-linux"))
     (build-system chromium-binary-build-system)
     (arguments
@@ -98,7 +98,7 @@ its core.")
 (define-public signal-desktop
   (package
     (name "signal-desktop")
-    (version "6.26.0")
+    (version "6.30.1")
     (source
      (origin
        (method url-fetch)
@@ -107,7 +107,7 @@ its core.")
          "https://updates.signal.org/desktop/apt/pool/s/" name "/" name "_" version
          "_amd64.deb"))
        (sha256
-        (base32 "1ja04bcbw206azk4h17fczzwd7kwdmqqd5qkjgwpm7kn58wdpfyw"))))
+        (base32 "15dxz9pxcx0skpkfr4ydb4m7qnpwp7ayw0s7qfkzrkwl1zh52vml"))))
     (supported-systems '("x86_64-linux"))
     (build-system chromium-binary-build-system)
     (arguments
@@ -160,14 +160,14 @@ or iOS.")
 (define-public zoom
   (package
     (name "zoom")
-    (version "5.15.5.5603")
+    (version "5.15.12.7665")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://cdn.zoom.us/prod/" version "/zoom_x86_64.tar.xz"))
        (file-name (string-append name "-" version "-x86_64.tar.xz"))
        (sha256
-        (base32 "12jjcrcx227gd55ymx0nac7g9lr4pk7c741qbr7avqwknpnjv8kf"))))
+        (base32 "1pmxgfafwlxnrcw1fay91krjqbf1kaf5ng4f3na0p6liyd5c6fhq"))))
     (supported-systems '("x86_64-linux"))
     (build-system binary-build-system)
     (arguments
