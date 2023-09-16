@@ -95,19 +95,19 @@
 
 ;; Update this id with every firefox update to its release date.
 ;; It's used for cache validation and therefore can lead to strange bugs.
-(define %firefox-esr-build-id "20230829000000")
+(define %firefox-esr-build-id "20230912000000")
 
 (define-public firefox-esr
   (package
     (name "firefox-esr")
-    (version "115.2.0esr")
+    (version "115.2.1esr")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://archive.mozilla.org/pub/firefox/releases/"
                            version "/source/firefox-" version ".source.tar.xz"))
        (sha256
-        (base32 "0mr4swx3yx2digni71vqy3gckxh0y4417k37rfi5bnaql794slsi"))))
+        (base32 "0rn9a099n9hwbbxmys4arjid06knzzvrg913azl60zmd0fvbafal"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -512,20 +512,20 @@ MOZ_ENABLE_WAYLAND=1 exec ~a $@\n"
 
 ;; Update this id with every firefox update to its release date.
 ;; It's used for cache validation and therefore can lead to strange bugs.
-(define %firefox-build-id "20230829000000")
+(define %firefox-build-id "20230912000000")
 
 (define-public firefox
   (package
     (inherit firefox-esr)
     (name "firefox")
-    (version "117.0")
+    (version "117.0.1")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://archive.mozilla.org/pub/firefox/releases/"
                            version "/source/firefox-" version ".source.tar.xz"))
        (sha256
-        (base32 "1ira4hln1110za8fixlfdipq7dar2npwpwwnz57dfd1klswlqlps"))))
+        (base32 "05n4f09mwpvbb0vs715pr97pb4820b4y55rm0j09zrgrbhxj193y"))))
     (arguments
      (substitute-keyword-arguments (package-arguments firefox-esr)
        ((#:phases phases)
